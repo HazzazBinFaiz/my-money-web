@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TransactionType;
-use App\Models\Concerns\BelongsToUser;
+use App\Models\Concerns\BelongsToBook;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,10 +11,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
-    use BelongsToUser, HasFactory;
+    use BelongsToBook, HasFactory;
 
     protected $fillable = [
-        'user_id', 'type', 'category_id', 'amount', 'charge',
+        'user_id', 'book_id', 'type', 'category_id', 'amount', 'charge',
         'from_account_id', 'to_account_id', 'from_account_balance', 'to_account_balance', 'note', 'created_at',
     ];
 

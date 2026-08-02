@@ -11,6 +11,12 @@
         <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
 
             <!-- Create form -->
+            <div class="flex justify-end">
+                <x-book-import :list-url="route('books.import.contacts')"
+                               :action="route('books.import.contacts.store')"
+                               :title="__('Import from other book')" kind="contact" />
+            </div>
+
             <x-ui.card :title="__('New contact')"
                        :description="__('A contact account with the same name and initial amount is created automatically.')">
                 <form method="POST" action="{{ route('contacts.store') }}" class="p-4 sm:p-6">

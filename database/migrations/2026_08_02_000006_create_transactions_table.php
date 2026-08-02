@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('book_id')->constrained()->cascadeOnDelete();
             $table->tinyInteger('type');
             // Null for transfers, which carry no category.
             $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
@@ -25,8 +26,8 @@ return new class extends Migration
             $table->text('note')->nullable();
             $table->timestamps();
 
-            $table->index(['user_id', 'type']);
-            $table->index(['user_id', 'created_at']);
+            $table->index(['book_id', 'type']);
+            $table->index(['book_id', 'created_at']);
         });
     }
 

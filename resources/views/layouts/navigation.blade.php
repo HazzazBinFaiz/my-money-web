@@ -27,6 +27,9 @@
                     <x-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.*')">
                         {{ __('Categories') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('books.index')" :active="request()->routeIs('books.*')">
+                        {{ __('Books') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -46,6 +49,9 @@
                     </x-slot>
 
                     <x-slot name="content">
+                        <x-book-switcher :books="$availableBooks ?? collect()" :current="$currentBook ?? null"
+                                         class="border-b border-gray-100 dark:border-gray-700" />
+
                         <x-theme-switcher class="border-b border-gray-100 dark:border-gray-700" />
 
                         <x-dropdown-link :href="route('profile.edit')">
@@ -96,6 +102,9 @@
             <x-responsive-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.*')">
                 {{ __('Categories') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('books.index')" :active="request()->routeIs('books.*')">
+                {{ __('Books') }}
+            </x-responsive-nav-link>
         </div>
 
         <!-- Responsive Settings Options -->
@@ -106,6 +115,8 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                <x-book-switcher :books="$availableBooks ?? collect()" :current="$currentBook ?? null" />
+
                 <x-theme-switcher />
 
                 <x-responsive-nav-link :href="route('profile.edit')">

@@ -2,17 +2,36 @@
 
 namespace App\Lib;
 
+use App\Enums\CurrencyPosition;
+use App\Models\Book;
+use App\Support\CurrentBook;
+
 class Util
 {
     /**
-     * Renders a stored amount for display.
+     * Renders a stored amount using the active book's currency settings.
      *
-     * Amounts are kept as integer minor units (cents), so this is the single
-     * place to hang the currency symbol and decimal settings on later.
+     * Amounts are stored as integer minor units (cents) regardless of the
+     * chosen decimal places, which only control how they are shown.
      */
-    public static function displayAmount(int|float|string|null $amount): string
+    public static function displayAmount(int|float|string|null $amount, ?Book $book = null): string
     {
-        return number_format(((float) ($amount ?? 0)) / 100, 2, '.', ',');
+        $book ??= app(CurrentBook::class)->get();
+
+        $decimals = $book?->decimal_places ?? 2;
+        $value = number_format(((float) ($amount ?? 0)) / 100, $decimals, '.', ',');
+
+        $currency = trim((string) ($book?->currency ?? ''));
+
+        if ($currency === '') {
+            return $value;
+        }
+
+        return match ($book?->currency_position) {
+            CurrencyPosition::After => $value.' '.$currency,
+            CurrencyPosition::None => $value,
+            default => $currency.$value,
+        };
     }
 
     /**

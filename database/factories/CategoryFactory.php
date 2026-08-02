@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\CategoryStatus;
 use App\Enums\CategoryType;
+use App\Models\Book;
 use App\Models\Category;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -17,6 +18,9 @@ class CategoryFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
+            'book_id' => fn (array $attributes) => Book::withoutGlobalScopes()
+                ->where('user_id', $attributes['user_id'])
+                ->value('id') ?? Book::factory()->create(['user_id' => $attributes['user_id']])->id,
             'type' => fake()->randomElement(CategoryType::cases()),
             'status' => CategoryStatus::Active,
             'name' => fake()->word(),

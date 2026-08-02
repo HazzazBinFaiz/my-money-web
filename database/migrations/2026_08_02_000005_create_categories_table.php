@@ -11,13 +11,14 @@ return new class extends Migration
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('book_id')->constrained()->cascadeOnDelete();
             $table->tinyInteger('type');
             $table->tinyInteger('status')->default(0);
             $table->string('name');
             $table->foreignId('icon_id')->nullable()->constrained('images')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['user_id', 'type']);
+            $table->index(['book_id', 'type']);
         });
     }
 

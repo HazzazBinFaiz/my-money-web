@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\BookController;
+use App\Http\Controllers\BookImportController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ImageController;
@@ -27,6 +29,14 @@ Route::middleware('auth')->group(function () {
     Route::get('transactions/bulk', [TransactionController::class, 'bulk'])->name('transactions.bulk');
     Route::post('transactions/bulk', [TransactionController::class, 'storeBulk'])->name('transactions.bulk.store');
     Route::resource('transactions', TransactionController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+
+    Route::resource('books', BookController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('books/{book}/switch', [BookController::class, 'switch'])->name('books.switch');
+
+    Route::get('books/import/contacts', [BookImportController::class, 'contacts'])->name('books.import.contacts');
+    Route::post('books/import/contacts', [BookImportController::class, 'storeContacts'])->name('books.import.contacts.store');
+    Route::get('books/import/categories', [BookImportController::class, 'categories'])->name('books.import.categories');
+    Route::post('books/import/categories', [BookImportController::class, 'storeCategories'])->name('books.import.categories.store');
 
     Route::get('/images', [ImageController::class, 'index'])->name('images.index');
     Route::post('/images', [ImageController::class, 'store'])->name('images.store');

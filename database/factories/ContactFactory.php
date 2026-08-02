@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Book;
 use App\Models\Contact;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,6 +16,9 @@ class ContactFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
+            'book_id' => fn (array $attributes) => Book::withoutGlobalScopes()
+                ->where('user_id', $attributes['user_id'])
+                ->value('id') ?? Book::factory()->create(['user_id' => $attributes['user_id']])->id,
             'name' => fake()->name(),
             'phone' => fake()->phoneNumber(),
             'email' => fake()->safeEmail(),

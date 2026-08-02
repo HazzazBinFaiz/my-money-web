@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('accounts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('book_id')->constrained()->cascadeOnDelete();
             $table->tinyInteger('type')->default(0);
             $table->tinyInteger('status')->default(0);
             $table->string('name');
@@ -19,7 +20,7 @@ return new class extends Migration
             $table->foreignId('icon_id')->nullable()->constrained('images')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['user_id', 'type']);
+            $table->index(['book_id', 'type']);
         });
     }
 

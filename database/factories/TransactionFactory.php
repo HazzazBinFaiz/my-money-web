@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\TransactionType;
+use App\Models\Book;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -16,6 +17,9 @@ class TransactionFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
+            'book_id' => fn (array $attributes) => Book::withoutGlobalScopes()
+                ->where('user_id', $attributes['user_id'])
+                ->value('id') ?? Book::factory()->create(['user_id' => $attributes['user_id']])->id,
             'type' => TransactionType::Expense,
             'category_id' => null,
             'amount' => 1000,

@@ -11,6 +11,12 @@
         <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
 
             <!-- Create form -->
+            <div class="flex justify-end">
+                <x-book-import :list-url="route('books.import.categories')"
+                               :action="route('books.import.categories.store')"
+                               :title="__('Import from other book')" kind="category" />
+            </div>
+
             <x-ui.card :title="__('New category')" :description="__('Type is fixed once the category is created.')">
                 <form method="POST" action="{{ route('categories.store') }}" class="p-4 sm:p-6">
                     @csrf

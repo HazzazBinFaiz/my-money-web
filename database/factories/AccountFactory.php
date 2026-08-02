@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
 use App\Models\Account;
+use App\Models\Book;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -19,6 +20,9 @@ class AccountFactory extends Factory
 
         return [
             'user_id' => User::factory(),
+            'book_id' => fn (array $attributes) => Book::withoutGlobalScopes()
+                ->where('user_id', $attributes['user_id'])
+                ->value('id') ?? Book::factory()->create(['user_id' => $attributes['user_id']])->id,
             'type' => AccountType::Account,
             'status' => AccountStatus::Active,
             'name' => fake()->words(2, true),
