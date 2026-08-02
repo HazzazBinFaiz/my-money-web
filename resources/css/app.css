@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* Circular crop frame for the image picker. */
+.image-cropper .cropper-view-box,
+.image-cropper .cropper-face {
+    border-radius: 50%;
+}
+
+.image-cropper .cropper-view-box {
+    outline: 2px solid rgba(255, 255, 255, 0.85);
+}
