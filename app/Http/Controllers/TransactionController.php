@@ -6,7 +6,6 @@ use App\Enums\AccountStatus;
 use App\Enums\AccountType;
 use App\Enums\CategoryStatus;
 use App\Enums\CategoryType;
-use App\Enums\TransactionType;
 use App\Http\Requests\StoreBulkTransactionRequest;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Models\Account;
@@ -81,20 +80,7 @@ class TransactionController extends Controller
         $rows = $request->transactionRows();
 
         // All or nothing: a bad row must not leave half the batch applied.
-        DB::transaction(function () use ($rows, $recorder) {
-            foreach ($rows as $row) {
-                $recorder->record(
-                    type: $row['type'],
-                    accountId: $row['account_id'],
-                    counterpartId: $row['to_account_id'],
-                    categoryId: $row['category_id'],
-                    amount: $row['amount'],
-                    charge: $row['charge'],
-                    note: $row['note'],
-                    occurredAt: $row['occurred_at'],
-                );
-            }
-        });
+        DB::transaction(fn () => $recorder->recordMany($rows));
 
         return redirect()->route('transactions.index')
             ->with('status', 'transactions-created')
@@ -117,24 +103,35 @@ class TransactionController extends Controller
         return redirect()->route('transactions.index')->with('status', 'transaction-created');
     }
 
-    public function destroy(Transaction $transaction): RedirectResponse
+    public function edit(Transaction $transaction): View
     {
-        DB::transaction(function () use ($transaction) {
-            // Undo the balance movements before dropping the row.
-            if ($from = $transaction->fromAccount) {
-                $from->amount += $transaction->amount + $transaction->charge;
-                $from->save();
-            }
+        return view('transactions.edit', $this->formOptions() + ['transaction' => $transaction]);
+    }
 
-            if ($to = $transaction->toAccount) {
-                $to->amount -= $transaction->type === TransactionType::Income
-                    ? $transaction->amount - $transaction->charge
-                    : $transaction->amount;
-                $to->save();
-            }
+    public function update(
+        StoreTransactionRequest $request,
+        Transaction $transaction,
+        TransactionRecorder $recorder,
+    ): RedirectResponse {
+        DB::transaction(fn () => $recorder->update(
+            transaction: $transaction,
+            type: $request->transactionType(),
+            accountId: $request->integer('account_id'),
+            counterpartId: $request->integer('to_account_id') ?: null,
+            categoryId: $request->integer('category_id') ?: null,
+            amount: $request->amountInMinorUnits(),
+            charge: $request->chargeInMinorUnits(),
+            note: $request->input('note'),
+            occurredAt: $request->occurredAt(),
+        ));
 
-            $transaction->delete();
-        });
+        return redirect()->route('transactions.index')->with('status', 'transaction-updated');
+    }
+
+    public function destroy(Transaction $transaction, TransactionRecorder $recorder): RedirectResponse
+    {
+        // The ledger replays the affected accounts, so later balances stay right.
+        DB::transaction(fn () => $recorder->delete($transaction));
 
         return redirect()->route('transactions.index')->with('status', 'transaction-deleted');
     }

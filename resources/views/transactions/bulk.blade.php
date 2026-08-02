@@ -10,7 +10,7 @@
         'rows' => array_values(old('rows', [])),
         'errors' => collect($errors->messages())->map(fn ($messages) => $messages[0])->all(),
         'accounts' => $ownAccounts->concat($contactAccounts)
-            ->map(fn ($account) => ['id' => $account->id, 'name' => $account->name])
+            ->map(fn ($account) => ['id' => $account->id, 'name' => $account->name, 'amount' => $account->amount])
             ->values()
             ->all(),
         'incomeCategories' => $incomeCategories->map(fn ($category) => ['id' => $category->id, 'name' => $category->name])->all(),
@@ -75,7 +75,7 @@
                     <!-- Toolbar -->
                     <div class="flex flex-wrap items-center gap-2 border-b border-gray-100 px-3 py-2 dark:border-gray-700">
                         <p class="text-xs text-gray-500 dark:text-gray-400">
-                            {{ __('Paste from a spreadsheet, or type. Arrows/Enter move, Ctrl+D duplicates, Ctrl+Backspace deletes.') }}
+                            {{ __('Paste from a spreadsheet, or type. Arrows/Enter move, Ctrl+D duplicates, Ctrl+Backspace deletes. Closing balance is an estimate applied in row order.') }}
                         </p>
 
                         <div class="ms-auto flex items-center gap-2">
@@ -109,6 +109,7 @@
                                     <th class="{{ $th }} w-32">{{ __('Date') }}</th>
                                     <th class="{{ $th }} w-24">{{ __('Time') }}</th>
                                     <th class="{{ $th }} w-44">{{ __('Note') }}</th>
+                                    <th class="{{ $th }} w-36 text-right">{{ __('Closing balance') }}</th>
                                     <th class="{{ $th }} w-16 text-right">{{ __('Actions') }}</th>
                                 </tr>
                             </thead>
@@ -243,6 +244,32 @@
                                                    @input="ensureDefaults(index)"
                                                    @keydown="navigate($event, index, 'note')"
                                                    class="{{ $cell }}">
+                                        </td>
+
+                                        <!-- Estimated closing balance of the row's account -->
+                                        <td class="{{ $td }} px-1.5 text-right text-xs">
+                                            <template x-if="closingBalance(index) === null">
+                                                <span class="text-gray-300 dark:text-gray-600">—</span>
+                                            </template>
+
+                                            <template x-if="closingBalance(index) !== null">
+                                                <span class="whitespace-nowrap">
+                                                    <span :class="closingBalance(index) < 0
+                                                        ? 'text-red-600 dark:text-red-400'
+                                                        : 'text-gray-600 dark:text-gray-300'"
+                                                          x-text="format(closingBalance(index))"></span>
+
+                                                    <template x-if="closingBalanceTo(index) !== null">
+                                                        <span>
+                                                            <span class="text-gray-300 dark:text-gray-600">|</span>
+                                                            <span :class="closingBalanceTo(index) < 0
+                                                                ? 'text-red-600 dark:text-red-400'
+                                                                : 'text-gray-600 dark:text-gray-300'"
+                                                                  x-text="format(closingBalanceTo(index))"></span>
+                                                        </span>
+                                                    </template>
+                                                </span>
+                                            </template>
                                         </td>
 
                                         <!-- Row actions -->

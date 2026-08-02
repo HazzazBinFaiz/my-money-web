@@ -838,6 +838,74 @@ export default function bulkTransactions({
             return totals;
         },
 
+        /**
+         * Balance an account is expected to land on once every complete row
+         * up to and including this one has been applied.
+         */
+        balanceAt(index, accountId) {
+            const account = this.accounts.find((candidate) => String(candidate.id) === String(accountId));
+
+            if (! accountId || ! account) {
+                return null;
+            }
+
+            let running = Number(account.amount ?? 0) / 100;
+
+            for (let i = 0; i <= index; i++) {
+                const current = this.rows[i];
+
+                if (this.isComplete(current)) {
+                    running += this.effectOn(current, String(accountId));
+                }
+            }
+
+            return running;
+        },
+
+        /** Closing balance of the row's source (or, for income, receiving) account. */
+        closingBalance(index) {
+            const row = this.rows[index];
+
+            return this.isComplete(row) ? this.balanceAt(index, row.account_id) : null;
+        },
+
+        /** Closing balance of the destination account, transfers only. */
+        closingBalanceTo(index) {
+            const row = this.rows[index];
+
+            if (! this.isComplete(row) || ! this.isTransfer(row)) {
+                return null;
+            }
+
+            return this.balanceAt(index, row.to_account_id);
+        },
+
+        /**
+         * How one grid row moves the given account.
+         */
+        effectOn(row, accountId) {
+            const amount = evaluateExpression(row.amount) ?? 0;
+            const charge = evaluateExpression(row.charge) ?? 0;
+            const type = Number(row.type);
+
+            let effect = 0;
+
+            const source = type === TYPE_INCOME ? null : String(row.account_id);
+            const destination = type === TYPE_INCOME
+                ? String(row.account_id)
+                : (type === TYPE_TRANSFER ? String(row.to_account_id) : null);
+
+            if (source && source === accountId) {
+                effect -= amount + charge;
+            }
+
+            if (destination && destination === accountId) {
+                effect += type === TYPE_INCOME ? amount - charge : amount;
+            }
+
+            return effect;
+        },
+
         format(value) {
             return Number(value ?? 0).toLocaleString(undefined, {
                 minimumFractionDigits: 2,

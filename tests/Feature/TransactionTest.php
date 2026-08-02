@@ -21,7 +21,7 @@ function expense(User $user): Category
 
 test('an income credits the account and stores the closing balance', function () {
     $user = User::factory()->create();
-    $account = Account::factory()->for($user)->create(['amount' => 10000]);
+    $account = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 10000]);
 
     $this->actingAs($user)->post(route('transactions.store'), [
         'type' => TransactionType::Income->value,
@@ -36,7 +36,8 @@ test('an income credits the account and stores the closing balance', function ()
 
     expect($account->fresh()->amount)->toBe(12550)
         ->and($transaction->amount)->toBe(2550)
-        ->and($transaction->balance)->toBe(12550)
+        ->and($transaction->to_account_balance)->toBe(12550)
+        ->and($transaction->from_account_balance)->toBe(0)
         ->and($transaction->to_account_id)->toBe($account->id)
         ->and($transaction->from_account_id)->toBeNull()
         ->and($transaction->created_at->format('Y-m-d H:i'))->toBe('2026-07-04 13:45');
@@ -44,7 +45,7 @@ test('an income credits the account and stores the closing balance', function ()
 
 test('an expense debits the account including the charge', function () {
     $user = User::factory()->create();
-    $account = Account::factory()->for($user)->create(['amount' => 10000]);
+    $account = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 10000]);
 
     $this->actingAs($user)->post(route('transactions.store'), [
         'type' => TransactionType::Expense->value,
@@ -61,14 +62,14 @@ test('an expense debits the account including the charge', function () {
     expect($transaction->amount)->toBe(2000)
         ->and($transaction->charge)->toBe(150)
         ->and($account->fresh()->amount)->toBe(7850)
-        ->and($transaction->balance)->toBe(7850)
+        ->and($transaction->from_account_balance)->toBe(7850)
         ->and($transaction->from_account_id)->toBe($account->id);
 });
 
 test('a transfer moves money between two accounts and takes no category', function () {
     $user = User::factory()->create();
-    $from = Account::factory()->for($user)->create(['amount' => 10000]);
-    $to = Account::factory()->for($user)->contact()->create(['amount' => 500]);
+    $from = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 10000]);
+    $to = Account::factory()->for($user)->contact()->create(['initial_amount' => 500, 'amount' => 500]);
 
     $this->actingAs($user)->post(route('transactions.store'), [
         'type' => TransactionType::Transfer->value,
@@ -85,7 +86,8 @@ test('a transfer moves money between two accounts and takes no category', functi
         ->and($transaction->category_id)->toBeNull()
         ->and($from->fresh()->amount)->toBe(3000)
         ->and($to->fresh()->amount)->toBe(7500)
-        ->and($transaction->balance)->toBe(3000);
+        ->and($transaction->from_account_balance)->toBe(3000)
+        ->and($transaction->to_account_balance)->toBe(7500);
 });
 
 test('a transfer needs two different accounts', function () {
@@ -172,7 +174,7 @@ test('a bogus amount expression is rejected', function () {
 
 test('deleting a transaction restores the balances', function () {
     $user = User::factory()->create();
-    $account = Account::factory()->for($user)->create(['amount' => 10000]);
+    $account = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 10000]);
 
     $this->actingAs($user)->post(route('transactions.store'), [
         'type' => TransactionType::Expense->value,
@@ -212,4 +214,104 @@ test('both list views render and transactions are scoped to their owner', functi
     $this->actingAs(User::factory()->create())
         ->delete(route('transactions.destroy', $transaction))
         ->assertNotFound();
+});
+
+test('deleting a transaction replays the balances of the ones after it', function () {
+    $user = User::factory()->create();
+    $account = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 10000]);
+    $category = expense($user);
+
+    foreach ([['10', '09:00'], ['20', '10:00'], ['30', '11:00']] as [$amount, $time]) {
+        $this->actingAs($user)->post(route('transactions.store'), [
+            'type' => TransactionType::Expense->value,
+            'account_id' => $account->id,
+            'category_id' => $category->id,
+            'amount' => $amount,
+            'date' => '2026-07-04',
+            'time' => $time,
+        ]);
+    }
+
+    $middle = Transaction::orderBy('created_at')->skip(1)->first();
+
+    $this->actingAs($user)->delete(route('transactions.destroy', $middle))->assertRedirect();
+
+    $balances = Transaction::orderBy('created_at')->pluck('from_account_balance')->all();
+
+    expect($balances)->toBe([9000, 6000])
+        ->and($account->fresh()->amount)->toBe(6000);
+});
+
+test('editing a transaction replays both the old and the new account', function () {
+    $user = User::factory()->create();
+    $cash = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 10000]);
+    $bank = Account::factory()->for($user)->create(['initial_amount' => 5000, 'amount' => 5000]);
+    $category = expense($user);
+
+    $this->actingAs($user)->post(route('transactions.store'), [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id,
+        'category_id' => $category->id,
+        'amount' => '25',
+        'date' => '2026-07-04',
+        'time' => '10:00',
+    ]);
+
+    $transaction = Transaction::first();
+
+    $this->actingAs($user)->put(route('transactions.update', $transaction), [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $bank->id,
+        'category_id' => $category->id,
+        'amount' => '10',
+        'date' => '2026-07-04',
+        'time' => '10:00',
+    ])->assertRedirect(route('transactions.index'));
+
+    expect($cash->fresh()->amount)->toBe(10000)
+        ->and($bank->fresh()->amount)->toBe(4000)
+        ->and($transaction->fresh()->from_account_balance)->toBe(4000);
+});
+
+test('a transfer takes amount plus charge from the source and gives only the amount', function () {
+    $user = User::factory()->create();
+    $from = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 10000]);
+    $to = Account::factory()->for($user)->create(['initial_amount' => 0, 'amount' => 0]);
+
+    $this->actingAs($user)->post(route('transactions.store'), [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $from->id,
+        'to_account_id' => $to->id,
+        'amount' => '50',
+        'charge' => '2.50',
+        'date' => '2026-07-04',
+        'time' => '10:00',
+    ])->assertRedirect();
+
+    $transaction = Transaction::first();
+
+    expect($from->fresh()->amount)->toBe(4750)
+        ->and($to->fresh()->amount)->toBe(5000)
+        ->and($transaction->from_account_balance)->toBe(4750)
+        ->and($transaction->to_account_balance)->toBe(5000);
+});
+
+test('the edit page renders with the transaction prefilled', function () {
+    $user = User::factory()->create();
+    $account = Account::factory()->for($user)->create();
+    $category = expense($user);
+
+    $this->actingAs($user)->post(route('transactions.store'), [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $account->id,
+        'category_id' => $category->id,
+        'amount' => '25',
+        'date' => '2026-07-04',
+        'time' => '10:00',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('transactions.edit', Transaction::first()))
+        ->assertOk()
+        ->assertSee('25.00');
 });

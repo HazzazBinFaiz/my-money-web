@@ -37,8 +37,8 @@ test('the bulk page renders', function () {
 
 test('many rows are saved in one go', function () {
     $user = User::factory()->create();
-    $cash = Account::factory()->for($user)->create(['amount' => 100000]);
-    $bank = Account::factory()->for($user)->create(['amount' => 0]);
+    $cash = Account::factory()->for($user)->create(['initial_amount' => 100000, 'amount' => 100000]);
+    $bank = Account::factory()->for($user)->create(['initial_amount' => 0, 'amount' => 0]);
     $income = activeCategory($user, CategoryType::Income);
     $expense = activeCategory($user, CategoryType::Expense);
 
@@ -87,7 +87,7 @@ test('a row holding only the default zero charge is ignored', function () {
 
 test('one bad row rolls the whole batch back', function () {
     $user = User::factory()->create();
-    $account = Account::factory()->for($user)->create(['amount' => 50000]);
+    $account = Account::factory()->for($user)->create(['initial_amount' => 50000, 'amount' => 50000]);
     $category = activeCategory($user, CategoryType::Expense);
 
     $this->actingAs($user)->post(route('transactions.bulk.store'), [

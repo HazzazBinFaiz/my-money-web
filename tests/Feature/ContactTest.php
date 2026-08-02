@@ -49,6 +49,20 @@ test('deleting a contact deletes its account', function () {
         ->and(Account::count())->toBe(0);
 });
 
+test('editing a contact opening balance replays its account ledger', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user)->post(route('contacts.store'), ['name' => 'Jane', 'initial_amount' => '100']);
+
+    $contact = Contact::first();
+
+    $this->actingAs($user)->put(route('contacts.update', $contact), [
+        'name' => 'Jane',
+        'initial_amount' => '250',
+    ])->assertRedirect();
+
+    expect($contact->fresh()->account->amount)->toBe(25000);
+});
+
 test('contacts are scoped to their owner', function () {
     $owner = User::factory()->create();
     $this->actingAs($owner)->post(route('contacts.store'), ['name' => 'Jane', 'initial_amount' => 100]);

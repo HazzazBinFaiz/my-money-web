@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateContactRequest;
 use App\Lib\Util;
 use App\Models\Account;
 use App\Models\Contact;
+use App\Services\LedgerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -54,13 +55,13 @@ class ContactController extends Controller
         return redirect()->route('contacts.index')->with('status', 'contact-created');
     }
 
-    public function update(UpdateContactRequest $request, Contact $contact): RedirectResponse
+    public function update(UpdateContactRequest $request, Contact $contact, LedgerService $ledger): RedirectResponse
     {
         $data = $request->validated();
 
         $initialAmount = Util::toMinorUnits($data['initial_amount']);
 
-        DB::transaction(function () use ($contact, $data, $initialAmount) {
+        DB::transaction(function () use ($contact, $data, $initialAmount, $ledger) {
             $contact->update([
                 'name' => $data['name'],
                 'phone' => $data['phone'] ?? null,
@@ -72,11 +73,13 @@ class ContactController extends Controller
             $account = $contact->account;
 
             if ($account) {
-                $account->amount = $account->amount - $account->initial_amount + $initialAmount;
                 $account->fill([
                     'initial_amount' => $initialAmount,
                     'icon_id' => $data['picture_id'] ?? null,
                 ])->save();
+
+                // A new opening balance shifts every balance recorded after it.
+                $ledger->recalculate([$account->id]);
             }
         });
 

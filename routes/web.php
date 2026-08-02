@@ -26,7 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('transactions/bulk', [TransactionController::class, 'bulk'])->name('transactions.bulk');
     Route::post('transactions/bulk', [TransactionController::class, 'storeBulk'])->name('transactions.bulk.store');
-    Route::resource('transactions', TransactionController::class)->only(['index', 'create', 'store', 'destroy']);
+    Route::resource('transactions', TransactionController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
     Route::get('/images', [ImageController::class, 'index'])->name('images.index');
     Route::post('/images', [ImageController::class, 'store'])->name('images.store');

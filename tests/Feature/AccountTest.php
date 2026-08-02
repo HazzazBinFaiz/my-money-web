@@ -2,7 +2,12 @@
 
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
+use App\Enums\CategoryStatus;
+use App\Enums\CategoryType;
+use App\Enums\TransactionType;
 use App\Models\Account;
+use App\Models\Category;
+use App\Models\Transaction;
 use App\Models\User;
 
 test('accounts page lists only account type rows', function () {
@@ -36,9 +41,24 @@ test('an account can be created with the current balance seeded from the initial
         ->and($account->status)->toBe(AccountStatus::Active);
 });
 
-test('changing the initial amount shifts the current balance by the same delta', function () {
+test('changing the opening balance replays every balance recorded after it', function () {
     $user = User::factory()->create();
-    $account = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 25000]);
+    $account = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 10000]);
+    $category = Category::factory()->for($user)->create([
+        'type' => CategoryType::Expense,
+        'status' => CategoryStatus::Active,
+    ]);
+
+    $this->actingAs($user)->post(route('transactions.store'), [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $account->id,
+        'category_id' => $category->id,
+        'amount' => '25',
+        'date' => '2026-07-04',
+        'time' => '10:00',
+    ]);
+
+    expect($account->fresh()->amount)->toBe(7500);
 
     $this->actingAs($user)
         ->put(route('accounts.update', $account), [
@@ -50,7 +70,8 @@ test('changing the initial amount shifts the current balance by the same delta',
     $account->refresh();
 
     expect($account->name)->toBe('Renamed')
-        ->and($account->amount)->toBe(45000)
+        ->and($account->amount)->toBe(27500)
+        ->and(Transaction::first()->from_account_balance)->toBe(27500)
         ->and($account->status)->toBe(AccountStatus::Inactive);
 });
 

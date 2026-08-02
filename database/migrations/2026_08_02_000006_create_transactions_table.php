@@ -18,7 +18,10 @@ return new class extends Migration
             $table->bigInteger('charge')->default(0);
             $table->foreignId('from_account_id')->nullable()->constrained('accounts')->nullOnDelete();
             $table->foreignId('to_account_id')->nullable()->constrained('accounts')->nullOnDelete();
-            $table->bigInteger('balance')->default(0);
+            // Running balance of each side after this transaction. The unused
+            // side stays 0 (income and expense only touch one account).
+            $table->bigInteger('from_account_balance')->default(0);
+            $table->bigInteger('to_account_balance')->default(0);
             $table->text('note')->nullable();
             $table->timestamps();
 

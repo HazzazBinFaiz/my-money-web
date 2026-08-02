@@ -15,7 +15,7 @@ class Transaction extends Model
 
     protected $fillable = [
         'user_id', 'type', 'category_id', 'amount', 'charge',
-        'from_account_id', 'to_account_id', 'balance', 'note', 'created_at',
+        'from_account_id', 'to_account_id', 'from_account_balance', 'to_account_balance', 'note', 'created_at',
     ];
 
     protected function casts(): array
@@ -24,7 +24,8 @@ class Transaction extends Model
             'type' => TransactionType::class,
             'amount' => 'integer',
             'charge' => 'integer',
-            'balance' => 'integer',
+            'from_account_balance' => 'integer',
+            'to_account_balance' => 'integer',
         ];
     }
 
@@ -56,6 +57,16 @@ class Transaction extends Model
         return $this->type === TransactionType::Income
             ? $this->toAccount
             : $this->fromAccount;
+    }
+
+    /**
+     * Closing balance of the account this transaction is reported against.
+     */
+    public function primaryBalance(): int
+    {
+        return $this->type === TransactionType::Income
+            ? $this->to_account_balance
+            : $this->from_account_balance;
     }
 
     public function label(): string

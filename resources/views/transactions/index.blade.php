@@ -142,10 +142,23 @@
                                                 </p>
                                             @endif
 
-                                            <p class="text-[11px] text-gray-400 sm:text-xs">
-                                                {{ __('Balance') }}: {{ Util::displayAmount($transaction->balance) }}
-                                            </p>
+                                            @if ($isTransfer)
+                                                <p class="text-[11px] text-gray-400 sm:text-xs">
+                                                    {{ $transaction->fromAccount?->name ?? '—' }}:
+                                                    {{ Util::displayAmount($transaction->from_account_balance) }}
+                                                </p>
+                                                <p class="text-[11px] text-gray-400 sm:text-xs">
+                                                    {{ $transaction->toAccount?->name ?? '—' }}:
+                                                    {{ Util::displayAmount($transaction->to_account_balance) }}
+                                                </p>
+                                            @else
+                                                <p class="text-[11px] text-gray-400 sm:text-xs">
+                                                    {{ __('Balance') }}: {{ Util::displayAmount($transaction->primaryBalance()) }}
+                                                </p>
+                                            @endif
                                         </div>
+
+                                        <x-transaction-menu :transaction="$transaction" />
                                     </div>
                                 @endforeach
                             </x-ui.card>
@@ -164,6 +177,7 @@
                                     <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Amount') }}</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Balance') }}</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Date') }}</th>
+                                    <th class="px-4 py-3 sm:px-6"></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -199,11 +213,25 @@
                                             @endif
                                         </td>
                                         <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-700 sm:px-6 dark:text-gray-300">
-                                            {{ Util::displayAmount($transaction->balance) }}
+                                            @if ($isTransfer)
+                                                <div class="text-xs">
+                                                    <span class="text-gray-400">{{ $transaction->fromAccount?->name ?? '—' }}:</span>
+                                                    {{ Util::displayAmount($transaction->from_account_balance) }}
+                                                </div>
+                                                <div class="text-xs">
+                                                    <span class="text-gray-400">{{ $transaction->toAccount?->name ?? '—' }}:</span>
+                                                    {{ Util::displayAmount($transaction->to_account_balance) }}
+                                                </div>
+                                            @else
+                                                {{ Util::displayAmount($transaction->primaryBalance()) }}
+                                            @endif
                                         </td>
                                         <td class="whitespace-nowrap px-4 py-3 sm:px-6">
                                             <div class="text-sm text-gray-900 dark:text-gray-100">{{ $transaction->created_at->isoFormat('D MMM YYYY') }}</div>
                                             <div class="text-xs text-gray-500">{{ $transaction->created_at->format('h:i A') }}</div>
+                                        </td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-right sm:px-6">
+                                            <x-transaction-menu :transaction="$transaction" />
                                         </td>
                                     </tr>
                                 @endforeach

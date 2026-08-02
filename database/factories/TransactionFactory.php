@@ -22,7 +22,8 @@ class TransactionFactory extends Factory
             'charge' => 0,
             'from_account_id' => null,
             'to_account_id' => null,
-            'balance' => 0,
+            'from_account_balance' => 0,
+            'to_account_balance' => 0,
             'note' => null,
         ];
     }
