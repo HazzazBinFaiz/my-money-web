@@ -13,7 +13,7 @@ test('creating a contact also creates its mirror account', function () {
             'name' => 'Jane',
             'phone' => '0123',
             'email' => 'jane@example.com',
-            'initial_amount' => 750,
+            'initial_amount' => '750.50',
         ])->assertRedirect(route('contacts.index'));
 
     $contact = Contact::first();
@@ -22,8 +22,8 @@ test('creating a contact also creates its mirror account', function () {
     expect($contact->account_id)->toBe($account->id)
         ->and($account->type)->toBe(AccountType::Contact)
         ->and($account->name)->toBe('Jane')
-        ->and($account->initial_amount)->toBe(750)
-        ->and($account->amount)->toBe(750);
+        ->and($account->initial_amount)->toBe(75050)
+        ->and($account->amount)->toBe(75050);
 });
 
 test('renaming a contact renames its account', function () {

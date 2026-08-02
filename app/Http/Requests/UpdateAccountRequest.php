@@ -16,7 +16,7 @@ class UpdateAccountRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'initial_amount' => ['required', 'integer'],
+            'initial_amount' => ['required', 'numeric'],
             'status' => ['required', Rule::enum(AccountStatus::class)],
             'icon_id' => ['nullable', 'integer', $this->usableImageRule(ImageType::Icon)],
         ];

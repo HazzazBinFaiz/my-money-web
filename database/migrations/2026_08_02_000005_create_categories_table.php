@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->tinyInteger('type');
+            $table->tinyInteger('status')->default(0);
             $table->string('name');
             $table->foreignId('icon_id')->nullable()->constrained('images')->nullOnDelete();
             $table->timestamps();

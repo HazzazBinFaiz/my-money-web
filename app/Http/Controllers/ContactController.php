@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\AccountType;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
+use App\Lib\Util;
 use App\Models\Account;
 use App\Models\Contact;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +28,9 @@ class ContactController extends Controller
     {
         $data = $request->validated();
 
-        DB::transaction(function () use ($data) {
+        $initialAmount = Util::toMinorUnits($data['initial_amount']);
+
+        DB::transaction(function () use ($data, $initialAmount) {
             $contact = Contact::create([
                 'name' => $data['name'],
                 'phone' => $data['phone'] ?? null,
@@ -40,8 +43,8 @@ class ContactController extends Controller
                 'type' => AccountType::Contact,
                 'status' => AccountStatus::Active,
                 'name' => $contact->name,
-                'initial_amount' => $data['initial_amount'],
-                'amount' => $data['initial_amount'],
+                'initial_amount' => $initialAmount,
+                'amount' => $initialAmount,
                 'icon_id' => $data['picture_id'] ?? null,
             ]);
 
@@ -55,7 +58,9 @@ class ContactController extends Controller
     {
         $data = $request->validated();
 
-        DB::transaction(function () use ($contact, $data) {
+        $initialAmount = Util::toMinorUnits($data['initial_amount']);
+
+        DB::transaction(function () use ($contact, $data, $initialAmount) {
             $contact->update([
                 'name' => $data['name'],
                 'phone' => $data['phone'] ?? null,
@@ -67,9 +72,9 @@ class ContactController extends Controller
             $account = $contact->account;
 
             if ($account) {
-                $account->amount = $account->amount - $account->initial_amount + (int) $data['initial_amount'];
+                $account->amount = $account->amount - $account->initial_amount + $initialAmount;
                 $account->fill([
-                    'initial_amount' => $data['initial_amount'],
+                    'initial_amount' => $initialAmount,
                     'icon_id' => $data['picture_id'] ?? null,
                 ])->save();
             }

@@ -12,14 +12,18 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->tinyInteger('type');
+            // Null for transfers, which carry no category.
+            $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
             $table->bigInteger('amount')->default(0);
             $table->bigInteger('charge')->default(0);
             $table->foreignId('from_account_id')->nullable()->constrained('accounts')->nullOnDelete();
             $table->foreignId('to_account_id')->nullable()->constrained('accounts')->nullOnDelete();
             $table->bigInteger('balance')->default(0);
+            $table->text('note')->nullable();
             $table->timestamps();
 
             $table->index(['user_id', 'type']);
+            $table->index(['user_id', 'created_at']);
         });
     }
 

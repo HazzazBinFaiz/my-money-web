@@ -37,7 +37,7 @@
                             </x-ui.field>
 
                             <x-ui.field :label="__('Initial amount')" for="initial_amount" :error="$errors->get('initial_amount')">
-                                <x-ui.input id="initial_amount" name="initial_amount" type="number" step="1" inputmode="numeric"
+                                <x-ui.input id="initial_amount" name="initial_amount" type="number" step="0.01" inputmode="decimal"
                                             :value="old('initial_amount', 0)" required />
                             </x-ui.field>
                         </div>
@@ -118,8 +118,8 @@
                                                 </div>
 
                                                 <x-ui.field :label="__('Initial amount')">
-                                                    <x-ui.input name="initial_amount" type="number" step="1" inputmode="numeric"
-                                                                :value="$contact->account?->initial_amount ?? 0" required />
+                                                    <x-ui.input name="initial_amount" type="number" step="0.01" inputmode="decimal"
+                                                                :value="\App\Lib\Util::toMajorUnits($contact->account?->initial_amount)" required />
                                                 </x-ui.field>
 
                                                 <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">

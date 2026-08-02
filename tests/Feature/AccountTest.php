@@ -24,21 +24,21 @@ test('an account can be created with the current balance seeded from the initial
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->post(route('accounts.store'), ['name' => 'Bank', 'initial_amount' => 500])
+        ->post(route('accounts.store'), ['name' => 'Bank', 'initial_amount' => '500.25'])
         ->assertRedirect(route('accounts.index'));
 
     $account = Account::first();
 
     expect($account->name)->toBe('Bank')
         ->and($account->user_id)->toBe($user->id)
-        ->and($account->initial_amount)->toBe(500)
-        ->and($account->amount)->toBe(500)
+        ->and($account->initial_amount)->toBe(50025)
+        ->and($account->amount)->toBe(50025)
         ->and($account->status)->toBe(AccountStatus::Active);
 });
 
 test('changing the initial amount shifts the current balance by the same delta', function () {
     $user = User::factory()->create();
-    $account = Account::factory()->for($user)->create(['initial_amount' => 100, 'amount' => 250]);
+    $account = Account::factory()->for($user)->create(['initial_amount' => 10000, 'amount' => 25000]);
 
     $this->actingAs($user)
         ->put(route('accounts.update', $account), [
@@ -50,7 +50,7 @@ test('changing the initial amount shifts the current balance by the same delta',
     $account->refresh();
 
     expect($account->name)->toBe('Renamed')
-        ->and($account->amount)->toBe(450)
+        ->and($account->amount)->toBe(45000)
         ->and($account->status)->toBe(AccountStatus::Inactive);
 });
 

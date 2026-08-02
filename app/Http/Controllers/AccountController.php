@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\AccountType;
 use App\Http\Requests\StoreAccountRequest;
 use App\Http\Requests\UpdateAccountRequest;
+use App\Lib\Util;
 use App\Models\Account;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -26,12 +27,14 @@ class AccountController extends Controller
     {
         $data = $request->validated();
 
+        $initialAmount = Util::toMinorUnits($data['initial_amount']);
+
         Account::create([
             'type' => AccountType::Account,
             'status' => AccountStatus::Active,
             'name' => $data['name'],
-            'initial_amount' => $data['initial_amount'],
-            'amount' => $data['initial_amount'],
+            'initial_amount' => $initialAmount,
+            'amount' => $initialAmount,
             'icon_id' => $data['icon_id'] ?? null,
         ]);
 
@@ -44,11 +47,13 @@ class AccountController extends Controller
 
         $data = $request->validated();
 
+        $initialAmount = Util::toMinorUnits($data['initial_amount']);
+
         // Current balance moves with the opening balance correction.
-        $account->amount = $account->amount - $account->initial_amount + (int) $data['initial_amount'];
+        $account->amount = $account->amount - $account->initial_amount + $initialAmount;
         $account->fill([
             'name' => $data['name'],
-            'initial_amount' => $data['initial_amount'],
+            'initial_amount' => $initialAmount,
             'status' => AccountStatus::from((int) $data['status']),
             'icon_id' => $data['icon_id'] ?? null,
         ])->save();

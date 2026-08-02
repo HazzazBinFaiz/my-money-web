@@ -6,6 +6,22 @@
     display: none !important;
 }
 
+/* Native controls (select popups, date pickers, scrollbars) follow the theme. */
+:root {
+    color-scheme: light;
+}
+
+.dark {
+    color-scheme: dark;
+}
+
+/* Firefox and some Linux builds ignore color-scheme for option lists. */
+.dark select option,
+.dark select optgroup {
+    background-color: #111827;
+    color: #f3f4f6;
+}
+
 /* Circular crop frame for the image picker. */
 .image-cropper .cropper-view-box,
 .image-cropper .cropper-face {
