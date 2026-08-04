@@ -123,13 +123,8 @@
 
     <!-- Product shot -->
     <section class="pb-20 sm:pb-24">
-        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-900/10 dark:border-gray-800 dark:bg-gray-900 dark:shadow-black/40">
-                <img src="{{ asset('images/site/screenshot-transactions.png') }}"
-                     alt="{{ __('The transaction list, grouped by date, with running balances') }}"
-                     width="1425" height="900" loading="lazy"
-                     class="w-full">
-            </div>
+        <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+            <x-site.app-mock />
 
             <p class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
                 {{ __('Every entry shows what it was, which account it touched, and where that account stood afterwards.') }}
@@ -186,12 +181,7 @@
                 </ul>
             </div>
 
-            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl shadow-gray-900/10 dark:border-gray-800 dark:bg-gray-950 dark:shadow-black/40">
-                <img src="{{ asset('images/site/screenshot-bulk.png') }}"
-                     alt="{{ __('The bulk entry grid with four rows and their closing balances') }}"
-                     width="1425" height="620" loading="lazy"
-                     class="w-full">
-            </div>
+            <x-site.bulk-mock />
         </div>
     </section>
 
