@@ -17,7 +17,7 @@
 
                     <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
                         <div class="flex justify-center sm:block">
-                            <x-image-picker name="icon_id" :type="ImageType::Icon" :label="__('Icon')" />
+                            <x-image-picker name="icon_id" :type="ImageType::Account" :label="__('Icon')" />
                         </div>
 
                         <div class="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
@@ -45,7 +45,7 @@
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-900/50">
                             <tr>
-                                <th class="w-24 px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Icon') }}</th>
+                                <th class="w-20 px-2 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 sm:w-28 sm:px-3">{{ __('Icon') }}</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Name') }}</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Initial') }}</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Balance') }}</th>
@@ -55,12 +55,14 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                             @forelse ($accounts as $account)
                                 <tr x-data="{ editing: false }" class="hover:bg-gray-50/60 dark:hover:bg-gray-900/30">
-                                    <td class="px-4 py-3 sm:px-6">
-                                        @if ($account->icon)
-                                            <img src="{{ $account->icon->url }}" alt="" class="h-12 w-12 rounded-full object-cover sm:h-[69px] sm:w-[69px]">
-                                        @else
-                                            <div class="h-12 w-12 rounded-full bg-gray-100 sm:h-[69px] sm:w-[69px] dark:bg-gray-700"></div>
-                                        @endif
+                                    <td class="px-2 py-3 sm:px-3">
+                                        <div class="flex items-center justify-center">
+                                            @if ($account->icon)
+                                                <img src="{{ $account->icon->url }}" alt="" class="h-12 w-12 avatar sm:h-[69px] sm:w-[69px]">
+                                            @else
+                                                <div class="h-12 w-12 avatar bg-gray-100 sm:h-[69px] sm:w-[69px] dark:bg-gray-700"></div>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 sm:px-6">
                                         <div class="font-medium text-gray-900 dark:text-gray-100">{{ $account->name }}</div>
@@ -93,7 +95,7 @@
                                                 @method('PUT')
 
                                                 <div class="flex justify-center sm:justify-start">
-                                                    <x-image-picker name="icon_id" :type="ImageType::Icon" :image="$account->icon" :label="__('Icon')" />
+                                                    <x-image-picker name="icon_id" :type="ImageType::Account" :image="$account->icon" :label="__('Icon')" />
                                                 </div>
 
                                                 <x-ui.field :label="__('Name')">

@@ -88,7 +88,7 @@ class BookController extends Controller
         $userId = $request->user()?->id;
 
         return Rule::exists('images', 'id')
-            ->where('type', ImageType::Icon->value)
+            ->where('type', ImageType::Book->value)
             ->where(fn ($query) => $query->where('user_id', $userId)->orWhereNull('user_id'));
     }
 

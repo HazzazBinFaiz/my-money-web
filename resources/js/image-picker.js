@@ -52,7 +52,7 @@ export default function imagePicker({ type, imageId = null, imageUrl = null }) {
             this.loading = true;
 
             try {
-                const response = await fetch(`/images?type=${this.type}`, {
+                const response = await fetch(`/media?type=${this.type}`, {
                     headers: { Accept: 'application/json' },
                 });
                 const payload = await response.json();
@@ -144,7 +144,7 @@ export default function imagePicker({ type, imageId = null, imageUrl = null }) {
                 form.append('image', blob, 'icon.png');
                 form.append('type', this.type);
 
-                const response = await fetch('/images', {
+                const response = await fetch('/media', {
                     method: 'POST',
                     headers: {
                         Accept: 'application/json',

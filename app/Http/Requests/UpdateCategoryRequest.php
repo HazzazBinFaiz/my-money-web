@@ -20,7 +20,7 @@ class UpdateCategoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'status' => ['required', 'integer', Rule::enum(CategoryStatus::class)],
-            'icon_id' => ['nullable', 'integer', $this->usableImageRule(ImageType::Icon)],
+            'icon_id' => ['nullable', 'integer', $this->usableImageRule(ImageType::Category)],
         ];
     }
 }

@@ -24,17 +24,37 @@ class TransactionController extends Controller
     {
         $view = $request->query('view') === 'table' ? 'table' : 'cards';
 
+        $filters = $request->validate([
+            'account' => ['nullable', 'integer'],
+            'category' => ['nullable', 'integer'],
+        ]);
+
+        $accountId = $filters['account'] ?? null;
+        $categoryId = $filters['category'] ?? null;
+
         $transactions = Transaction::with([
             'category.icon',
             'fromAccount.icon',
             'toAccount.icon',
         ])
+            // An account matches whichever side of the transaction it sits on.
+            ->when($accountId, fn ($query, $id) => $query->where(
+                fn ($sides) => $sides->where('from_account_id', $id)->orWhere('to_account_id', $id)
+            ))
+            ->when($categoryId, fn ($query, $id) => $query->where('category_id', $id))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->paginate(20)
+            ->paginate(100)
             ->withQueryString();
 
-        return view('transactions.index', compact('transactions', 'view'));
+        return view('transactions.index', [
+            'transactions' => $transactions,
+            'view' => $view,
+            'accountId' => $accountId,
+            'categoryId' => $categoryId,
+            'filterAccounts' => Account::orderBy('type')->orderBy('name')->get(),
+            'filterCategories' => Category::orderBy('type')->orderBy('name')->get(),
+        ]);
     }
 
     public function create(): View

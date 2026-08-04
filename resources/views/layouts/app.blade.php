@@ -24,7 +24,7 @@
                 <div class="border-b border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800">
                     <div class="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2 sm:px-6 lg:px-8">
                         @if ($currentBook->icon)
-                            <img src="{{ $currentBook->icon->url }}" alt="" class="h-5 w-5 rounded-full object-cover">
+                            <img src="{{ $currentBook->icon->url }}" alt="" class="h-5 w-5 avatar rounded-full object-cover">
                         @else
                             <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

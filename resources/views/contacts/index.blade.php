@@ -61,7 +61,7 @@
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-900/50">
                             <tr>
-                                <th class="w-24 px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Picture') }}</th>
+                                <th class="w-20 px-2 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 sm:w-28 sm:px-3">{{ __('Picture') }}</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Name') }}</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Phone') }}</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:px-6">{{ __('Email') }}</th>
@@ -73,12 +73,14 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                             @forelse ($contacts as $contact)
                                 <tr x-data="{ editing: false }" class="hover:bg-gray-50/60 dark:hover:bg-gray-900/30">
-                                    <td class="px-4 py-3 sm:px-6">
-                                        @if ($contact->picture)
-                                            <img src="{{ $contact->picture->url }}" alt="" class="h-12 w-12 rounded-full object-cover sm:h-[69px] sm:w-[69px]">
-                                        @else
-                                            <div class="h-12 w-12 rounded-full bg-gray-100 sm:h-[69px] sm:w-[69px] dark:bg-gray-700"></div>
-                                        @endif
+                                    <td class="px-2 py-3 sm:px-3">
+                                        <div class="flex items-center justify-center">
+                                            @if ($contact->picture)
+                                                <img src="{{ $contact->picture->url }}" alt="" class="h-12 w-12 avatar sm:h-[69px] sm:w-[69px]">
+                                            @else
+                                                <div class="h-12 w-12 avatar bg-gray-100 sm:h-[69px] sm:w-[69px] dark:bg-gray-700"></div>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 font-medium text-gray-900 sm:px-6 dark:text-gray-100">{{ $contact->name }}</td>
                                     <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 sm:px-6 dark:text-gray-400">{{ $contact->phone ?: '—' }}</td>

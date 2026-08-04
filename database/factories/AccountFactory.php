@@ -22,6 +22,8 @@ class AccountFactory extends Factory
             'user_id' => User::factory(),
             'book_id' => fn (array $attributes) => Book::withoutGlobalScopes()
                 ->where('user_id', $attributes['user_id'])
+                ->orderByDesc('is_default')
+                ->orderBy('id')
                 ->value('id') ?? Book::factory()->create(['user_id' => $attributes['user_id']])->id,
             'type' => AccountType::Account,
             'status' => AccountStatus::Active,

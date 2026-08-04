@@ -34,7 +34,7 @@
 
                         <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
                             <div class="flex justify-center sm:block">
-                                <x-image-picker name="icon_id" :type="ImageType::Icon" :image="$current->icon" :label="__('Icon')" />
+                                <x-image-picker name="icon_id" :type="ImageType::Book" :image="$current->icon" :label="__('Icon')" />
                             </div>
 
                             <div class="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
@@ -79,15 +79,85 @@
                 </x-ui.card>
             @endif
 
+            @if (session('mbak_summary'))
+                @php($summary = session('mbak_summary'))
+                <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800
+                            dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+                    {{ __('Backup imported into :book:', ['book' => $current?->name]) }}
+                    {{ $summary['transactions_created'] }} {{ __('transactions') }},
+                    {{ $summary['accounts_created'] }} {{ __('new accounts') }},
+                    {{ $summary['categories_created'] }} {{ __('new categories') }}@if ($summary['skipped']),
+                        {{ $summary['skipped'] }} {{ __('records skipped') }}@endif.
+                </div>
+            @endif
+
+            <!-- Restore from a mobile app backup -->
+            <x-ui.card :title="__('Import from .mbak backup')"
+                       :description="__('Upload a backup exported by the mobile app to bring its accounts, categories and records in.')">
+                <form method="POST" action="{{ route('books.import.mbak') }}" enctype="multipart/form-data"
+                      class="p-4 sm:p-6"
+                      x-data="{ fileName: '', dragging: false }">
+                    @csrf
+
+                    <label class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed
+                                  px-4 py-8 text-center transition"
+                           :class="dragging
+                               ? 'border-gray-900 bg-gray-50 dark:border-gray-300 dark:bg-gray-900'
+                               : 'border-gray-300 dark:border-gray-600'"
+                           @dragover.prevent="dragging = true"
+                           @dragleave.prevent="dragging = false"
+                           @drop.prevent="dragging = false; $refs.backup.files = $event.dataTransfer.files; fileName = $refs.backup.files[0]?.name ?? ''">
+                        <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+
+                        <span class="text-sm text-gray-600 dark:text-gray-300">
+                            <span x-show="! fileName">{{ __('Drop a .mbak file here, or click to choose one') }}</span>
+                            <span x-show="fileName" x-cloak class="font-medium text-gray-900 dark:text-gray-100" x-text="fileName"></span>
+                        </span>
+
+                        <input type="file" name="backup" accept=".mbak" x-ref="backup" class="hidden"
+                               @change="fileName = $event.target.files[0]?.name ?? ''">
+                    </label>
+
+                    <x-input-error :messages="$errors->get('backup')" class="mt-2" />
+
+                    <div class="mt-4 flex justify-end">
+                        <x-ui.button ::disabled="! fileName" class="w-full sm:w-auto">{{ __('Upload and read') }}</x-ui.button>
+                    </div>
+                </form>
+            </x-ui.card>
+
+            <!-- Export -->
+            <x-ui.card :title="__('Export to .mbak')"
+                       :description="__('Download this book in the mobile app backup format.')">
+                <div class="flex flex-wrap items-center gap-3 p-4 sm:p-6">
+                    <a href="{{ route('books.export.mbak') }}"
+                       class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-gray-900 px-4 text-sm font-medium
+                              text-white shadow-sm transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                        {{ __('Download .mbak') }}
+                    </a>
+
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ __('Charges are exported as separate "Transfer Charge" expenses, and inactive accounts get a leading dot.') }}
+                    </p>
+                </div>
+            </x-ui.card>
+
             <!-- All books -->
             <x-ui.card :title="__('Your books')">
                 <div class="divide-y divide-gray-100 dark:divide-gray-700">
                     @foreach ($books as $book)
                         <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6" x-data="{ confirming: false }">
                             @if ($book->icon)
-                                <img src="{{ $book->icon->url }}" alt="" class="h-10 w-10 rounded-full object-cover">
+                                <img src="{{ $book->icon->url }}" alt="" class="h-10 w-10 avatar rounded-full object-cover">
                             @else
-                                <span class="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-700"></span>
+                                <span class="h-10 w-10 avatar rounded-full bg-gray-100 dark:bg-gray-700"></span>
                             @endif
 
                             <div class="min-w-0 flex-1">
@@ -160,7 +230,7 @@
                         @csrf
 
                         <div class="flex justify-center sm:justify-start">
-                            <x-image-picker name="icon_id" :type="ImageType::Icon" :label="__('Icon')" />
+                            <x-image-picker name="icon_id" :type="ImageType::Book" :label="__('Icon')" />
                         </div>
 
                         <x-ui.field :label="__('Name')">

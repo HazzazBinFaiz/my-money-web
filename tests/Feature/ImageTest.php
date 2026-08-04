@@ -12,13 +12,13 @@ test('a cropped png can be uploaded', function () {
 
     $response = $this->actingAs($user)->postJson(route('images.store'), [
         'image' => UploadedFile::fake()->image('icon.png', 69, 69),
-        'type' => ImageType::Icon->value,
+        'type' => ImageType::Account->value,
     ])->assertCreated();
 
     $image = Image::first();
 
     expect($image->user_id)->toBe($user->id)
-        ->and($image->type)->toBe(ImageType::Icon)
+        ->and($image->type)->toBe(ImageType::Account)
         ->and($image->image_name)->toEndWith('.png')
         ->and($response->json('data.id'))->toBe($image->id);
 
@@ -31,19 +31,19 @@ test('non png uploads are rejected', function () {
 
     $this->actingAs($user)->postJson(route('images.store'), [
         'image' => UploadedFile::fake()->image('icon.jpg'),
-        'type' => ImageType::Icon->value,
+        'type' => ImageType::Account->value,
     ])->assertJsonValidationErrors('image');
 });
 
 test('the picker lists own and shared images of the requested type only', function () {
     $user = User::factory()->create();
     $own = Image::factory()->for($user)->create();
-    $shared = Image::factory()->shared()->create(['type' => ImageType::Icon]);
+    $shared = Image::factory()->shared()->create(['type' => ImageType::Account]);
     Image::factory()->for($user)->picture()->create();
     Image::factory()->create();
 
     $ids = $this->actingAs($user)
-        ->getJson(route('images.index', ['type' => ImageType::Icon->value]))
+        ->getJson(route('images.index', ['type' => ImageType::Account->value]))
         ->assertOk()
         ->json('data.*.id');
 

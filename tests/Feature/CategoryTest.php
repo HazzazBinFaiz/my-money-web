@@ -9,7 +9,7 @@ use App\Models\User;
 
 test('a category can be created with an icon', function () {
     $user = User::factory()->create();
-    $icon = Image::factory()->for($user)->create();
+    $icon = Image::factory()->for($user)->category()->create();
 
     $this->actingAs($user)
         ->post(route('categories.store'), [
@@ -37,7 +37,7 @@ test('a category cannot use another users image', function () {
         ])->assertSessionHasErrors('icon_id');
 });
 
-test('a category cannot use a picture typed image', function () {
+test('a category cannot use an image of another kind', function () {
     $user = User::factory()->create();
     $picture = Image::factory()->for($user)->picture()->create();
 
@@ -47,11 +47,21 @@ test('a category cannot use a picture typed image', function () {
             'name' => 'Salary',
             'icon_id' => $picture->id,
         ])->assertSessionHasErrors('icon_id');
+
+    // Account icons are a separate library from category icons.
+    $accountIcon = Image::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->post(route('categories.store'), [
+            'type' => CategoryType::Income->value,
+            'name' => 'Salary',
+            'icon_id' => $accountIcon->id,
+        ])->assertSessionHasErrors('icon_id');
 });
 
 test('shared images may be used by anyone', function () {
     $user = User::factory()->create();
-    $shared = Image::factory()->shared()->create(['type' => ImageType::Icon]);
+    $shared = Image::factory()->shared()->create(['type' => ImageType::Category]);
 
     $this->actingAs($user)
         ->post(route('categories.store'), [

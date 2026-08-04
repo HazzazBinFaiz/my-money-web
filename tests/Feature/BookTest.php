@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\Contact;
+use App\Models\Image;
 use App\Models\User;
 use App\Support\CurrentBook;
 
@@ -165,6 +166,30 @@ test('importing categories skips names already present', function () {
         ->assertRedirect(route('categories.index'));
 
     expect(Category::where('name', 'Groceries')->count())->toBe(1);
+});
+
+test('a book icon must come from the book library', function () {
+    $user = User::factory()->create();
+    $book = $user->defaultBook();
+
+    $accountIcon = Image::factory()->for($user)->create();
+    $bookIcon = Image::factory()->for($user)->book()->create();
+
+    $payload = [
+        'name' => 'Personal',
+        'decimal_places' => 2,
+        'currency_position' => CurrencyPosition::Before->value,
+    ];
+
+    $this->actingAs($user)
+        ->put(route('books.update', $book), $payload + ['icon_id' => $accountIcon->id])
+        ->assertSessionHasErrors('icon_id');
+
+    $this->actingAs($user)
+        ->put(route('books.update', $book), $payload + ['icon_id' => $bookIcon->id])
+        ->assertSessionHasNoErrors();
+
+    expect($book->fresh()->icon_id)->toBe($bookIcon->id);
 });
 
 test('the books page renders with the active book highlighted', function () {

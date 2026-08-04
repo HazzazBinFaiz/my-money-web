@@ -6,6 +6,7 @@ use App\Enums\ImageType;
 use App\Http\Requests\StoreImageRequest;
 use App\Models\Image;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -24,7 +25,7 @@ class ImageController extends Controller
         ]);
 
         $images = Image::ofType(ImageType::from((int) $validated['type']))
-            ->latest('id')
+//            ->latest('id')
             ->get()
             ->map(fn (Image $image) => [
                 'id' => $image->id,
@@ -59,8 +60,13 @@ class ImageController extends Controller
      * Streams the file. Route model binding already limits this to
      * images the user owns or shared ones.
      */
-    public function show(Image $image): BinaryFileResponse
+    public function show(Image $image): BinaryFileResponse|RedirectResponse
     {
+        // Seeded icons are plain public files; send the browser straight there.
+        if ($image->isShared()) {
+            return redirect($image->url);
+        }
+
         abort_unless(Storage::disk('local')->exists($image->path()), 404);
 
         return response()->file(Storage::disk('local')->path($image->path()), [

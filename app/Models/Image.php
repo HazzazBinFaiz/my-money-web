@@ -13,7 +13,7 @@ class Image extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'type', 'image_name'];
+    protected $fillable = ['user_id', 'type', 'image_name', 'export_icon_id'];
 
     protected function casts(): array
     {
@@ -59,6 +59,18 @@ class Image extends Model
         return $user !== null && $this->user_id === $user->id;
     }
 
+    /**
+     * Shared images are the seeded library that ships in public/images;
+     * user uploads live on the local disk, outside the web root.
+     */
+    public function isShared(): bool
+    {
+        return $this->user_id === null;
+    }
+
+    /**
+     * Path on the local disk. Only meaningful for user uploads.
+     */
     public function path(): string
     {
         return 'images/'.$this->image_name;
@@ -66,6 +78,8 @@ class Image extends Model
 
     public function getUrlAttribute(): string
     {
-        return route('images.show', $this);
+        return $this->isShared()
+            ? asset('images/'.$this->image_name)
+            : route('images.show', $this);
     }
 }

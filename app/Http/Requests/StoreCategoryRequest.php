@@ -17,7 +17,7 @@ class StoreCategoryRequest extends FormRequest
         return [
             'type' => ['required', Rule::enum(CategoryType::class)],
             'name' => ['required', 'string', 'max:255'],
-            'icon_id' => ['nullable', 'integer', $this->usableImageRule(ImageType::Icon)],
+            'icon_id' => ['nullable', 'integer', $this->usableImageRule(ImageType::Category)],
         ];
     }
 }

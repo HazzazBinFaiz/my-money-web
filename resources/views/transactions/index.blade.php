@@ -1,6 +1,21 @@
 @php
+    use App\Enums\AccountType;
+    use App\Enums\CategoryType;
     use App\Enums\TransactionType;
     use App\Lib\Util;
+
+    $hasFilters = $accountId || $categoryId;
+
+    // Grouped once here so the filter selects stay simple markup.
+    $accountGroups = [
+        __('Accounts') => $filterAccounts->where('type', AccountType::Account),
+        __('Contacts') => $filterAccounts->where('type', AccountType::Contact),
+    ];
+
+    $categoryGroups = [
+        CategoryType::Income->label() => $filterCategories->where('type', CategoryType::Income),
+        CategoryType::Expense->label() => $filterCategories->where('type', CategoryType::Expense),
+    ];
 
     $transferIcon = asset('images/transfer.png');
 
@@ -21,7 +36,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="inline-flex rounded-lg bg-gray-100 p-1 dark:bg-gray-900">
                     @foreach (['cards' => __('List'), 'table' => __('Table')] as $key => $label)
-                        <a href="{{ route('transactions.index', ['view' => $key]) }}"
+                        <a href="{{ route('transactions.index', array_filter(['view' => $key, 'account' => $accountId, 'category' => $categoryId])) }}"
                            class="rounded-md px-3 py-1.5 text-sm font-medium transition {{ $view === $key
                                ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
                                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200' }}">
@@ -52,9 +67,62 @@
                 </div>
             </div>
 
+            <!-- Filters -->
+            <x-ui.card>
+                <form method="GET" action="{{ route('transactions.index') }}"
+                      class="flex flex-wrap items-end gap-3 p-3 sm:p-4">
+                    <input type="hidden" name="view" value="{{ $view }}">
+
+                    <x-ui.field :label="__('Account')" class="w-full sm:w-56">
+                        <x-ui.select name="account" @change="$el.form.submit()" x-data>
+                            <option value="">{{ __('All accounts') }}</option>
+                            @foreach ($accountGroups as $groupLabel => $group)
+                                @if ($group->isNotEmpty())
+                                    <optgroup label="{{ $groupLabel }}">
+                                        @foreach ($group as $account)
+                                            <option value="{{ $account->id }}" @selected($accountId == $account->id)>{{ $account->name }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+
+                    <x-ui.field :label="__('Category')" class="w-full sm:w-56">
+                        <x-ui.select name="category" @change="$el.form.submit()" x-data>
+                            <option value="">{{ __('All categories') }}</option>
+                            @foreach ($categoryGroups as $groupLabel => $group)
+                                @if ($group->isNotEmpty())
+                                    <optgroup label="{{ $groupLabel }}">
+                                        @foreach ($group as $category)
+                                            <option value="{{ $category->id }}" @selected($categoryId == $category->id)>{{ $category->name }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+
+                    <x-ui.button variant="outline" class="!h-10">{{ __('Apply') }}</x-ui.button>
+
+                    @if ($hasFilters)
+                        <a href="{{ route('transactions.index', ['view' => $view]) }}"
+                           class="inline-flex h-10 items-center text-sm font-medium text-gray-500 hover:underline dark:text-gray-400">
+                            {{ __('Clear') }}
+                        </a>
+
+                        <span class="ms-auto text-xs text-gray-500 dark:text-gray-400">
+                            {{ trans_choice(':count matching transaction|:count matching transactions', $transactions->total(), ['count' => $transactions->total()]) }}
+                        </span>
+                    @endif
+                </form>
+            </x-ui.card>
+
             @if ($transactions->isEmpty())
                 <x-ui.card>
-                    <p class="px-6 py-12 text-center text-sm text-gray-500">{{ __('No transactions yet.') }}</p>
+                    <p class="px-6 py-12 text-center text-sm text-gray-500">
+                        {{ $hasFilters ? __('No transactions match these filters.') : __('No transactions yet.') }}
+                    </p>
                 </x-ui.card>
             @elseif ($view === 'cards')
                 <!-- Grouped list view -->
@@ -80,12 +148,12 @@
                                         <div class="shrink-0">
                                             @if ($isTransfer)
                                                 <img src="{{ $transferIcon }}" alt="{{ __('Transfer') }}"
-                                                     class="h-10 w-10 rounded-full object-cover sm:h-12 sm:w-12">
+                                                     class="h-10 w-10 avatar rounded-full object-cover sm:h-12 sm:w-12">
                                             @elseif ($transaction->category?->icon)
                                                 <img src="{{ $transaction->category->icon->url }}" alt=""
-                                                     class="h-10 w-10 rounded-full object-cover sm:h-12 sm:w-12">
+                                                     class="h-10 w-10 avatar rounded-full object-cover sm:h-12 sm:w-12">
                                             @else
-                                                <div class="h-10 w-10 rounded-full bg-gray-100 sm:h-12 sm:w-12 dark:bg-gray-700"></div>
+                                                <div class="h-10 w-10 avatar rounded-full bg-gray-100 sm:h-12 sm:w-12 dark:bg-gray-700"></div>
                                             @endif
                                         </div>
 
@@ -98,23 +166,23 @@
                                             <div class="mt-0.5 flex items-center gap-1.5 sm:mt-1 sm:gap-2">
                                                 @if ($isTransfer)
                                                     @if ($transaction->fromAccount?->icon)
-                                                        <img src="{{ $transaction->fromAccount->icon->url }}" alt="" class="h-5 w-5 rounded-full object-cover sm:h-6 sm:w-6">
+                                                        <img src="{{ $transaction->fromAccount->icon->url }}" alt="" class="h-5 w-5 avatar rounded-full object-cover sm:h-6 sm:w-6">
                                                     @else
-                                                        <span class="h-5 w-5 rounded-full bg-gray-100 sm:h-6 sm:w-6 dark:bg-gray-700"></span>
+                                                        <span class="h-5 w-5 avatar rounded-full bg-gray-100 sm:h-6 sm:w-6 dark:bg-gray-700"></span>
                                                     @endif
                                                     <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                                     </svg>
                                                     @if ($transaction->toAccount?->icon)
-                                                        <img src="{{ $transaction->toAccount->icon->url }}" alt="" class="h-5 w-5 rounded-full object-cover sm:h-6 sm:w-6">
+                                                        <img src="{{ $transaction->toAccount->icon->url }}" alt="" class="h-5 w-5 avatar rounded-full object-cover sm:h-6 sm:w-6">
                                                     @else
-                                                        <span class="h-5 w-5 rounded-full bg-gray-100 sm:h-6 sm:w-6 dark:bg-gray-700"></span>
+                                                        <span class="h-5 w-5 avatar rounded-full bg-gray-100 sm:h-6 sm:w-6 dark:bg-gray-700"></span>
                                                     @endif
                                                 @else
                                                     @if ($transaction->primaryAccount()?->icon)
-                                                        <img src="{{ $transaction->primaryAccount()->icon->url }}" alt="" class="h-5 w-5 rounded-full object-cover sm:h-6 sm:w-6">
+                                                        <img src="{{ $transaction->primaryAccount()->icon->url }}" alt="" class="h-5 w-5 avatar rounded-full object-cover sm:h-6 sm:w-6">
                                                     @else
-                                                        <span class="h-5 w-5 rounded-full bg-gray-100 sm:h-6 sm:w-6 dark:bg-gray-700"></span>
+                                                        <span class="h-5 w-5 avatar rounded-full bg-gray-100 sm:h-6 sm:w-6 dark:bg-gray-700"></span>
                                                     @endif
                                                 @endif
 
@@ -190,11 +258,11 @@
                                         <td class="px-4 py-3 sm:px-6">
                                             <div class="flex items-center gap-2">
                                                 @if ($isTransfer)
-                                                    <img src="{{ $transferIcon }}" alt="" class="h-8 w-8 rounded-full object-cover">
+                                                    <img src="{{ $transferIcon }}" alt="" class="h-8 w-8 avatar rounded-full object-cover">
                                                 @elseif ($transaction->category?->icon)
-                                                    <img src="{{ $transaction->category->icon->url }}" alt="" class="h-8 w-8 rounded-full object-cover">
+                                                    <img src="{{ $transaction->category->icon->url }}" alt="" class="h-8 w-8 avatar rounded-full object-cover">
                                                 @else
-                                                    <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700"></span>
+                                                    <span class="h-8 w-8 avatar rounded-full bg-gray-100 dark:bg-gray-700"></span>
                                                 @endif
                                                 <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $transaction->title() }}</span>
                                             </div>

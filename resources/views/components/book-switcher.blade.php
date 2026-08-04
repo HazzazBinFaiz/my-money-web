@@ -22,9 +22,9 @@
                                        ? 'font-semibold text-gray-900 dark:text-white'
                                        : 'text-gray-600 dark:text-gray-300' }}">
                         @if ($book->icon)
-                            <img src="{{ $book->icon->url }}" alt="" class="h-5 w-5 shrink-0 rounded-full object-cover">
+                            <img src="{{ $book->icon->url }}" alt="" class="h-5 w-5 shrink-0 avatar rounded-full object-cover">
                         @else
-                            <span class="h-5 w-5 shrink-0 rounded-full bg-gray-200 dark:bg-gray-600"></span>
+                            <span class="h-5 w-5 shrink-0 avatar rounded-full bg-gray-200 dark:bg-gray-600"></span>
                         @endif
 
                         <span class="truncate">{{ $book->name }}</span>

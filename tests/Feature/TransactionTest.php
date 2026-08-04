@@ -315,3 +315,93 @@ test('the edit page renders with the transaction prefilled', function () {
         ->assertOk()
         ->assertSee('25.00');
 });
+
+test('the list can be filtered by account and by category', function () {
+    $user = User::factory()->create();
+    $cash = Account::factory()->for($user)->create(['name' => 'Cash Account', 'initial_amount' => 100000, 'amount' => 100000]);
+    $bank = Account::factory()->for($user)->create(['name' => 'Bank Account', 'initial_amount' => 100000, 'amount' => 100000]);
+    $food = expense($user);
+    $rent = expense($user);
+
+    $post = fn (Account $account, Category $category, string $note) => $this->actingAs($user)
+        ->post(route('transactions.store'), [
+            'type' => TransactionType::Expense->value,
+            'account_id' => $account->id,
+            'category_id' => $category->id,
+            'amount' => '10',
+            'note' => $note,
+            'date' => '2026-07-04',
+            'time' => '10:00',
+        ]);
+
+    $post($cash, $food, 'cash and food');
+    $post($bank, $rent, 'bank and rent');
+
+    // Account filter.
+    $this->actingAs($user)->get(route('transactions.index', ['account' => $cash->id]))
+        ->assertOk()
+        ->assertSee('cash and food')
+        ->assertDontSee('bank and rent');
+
+    // Category filter.
+    $this->actingAs($user)->get(route('transactions.index', ['category' => $rent->id]))
+        ->assertOk()
+        ->assertSee('bank and rent')
+        ->assertDontSee('cash and food');
+
+    // Both together, with nothing matching.
+    $this->actingAs($user)->get(route('transactions.index', ['account' => $cash->id, 'category' => $rent->id]))
+        ->assertOk()
+        ->assertSee('No transactions match these filters');
+});
+
+test('an account filter matches both sides of a transfer', function () {
+    $user = User::factory()->create();
+    $from = Account::factory()->for($user)->create(['name' => 'Source', 'initial_amount' => 100000, 'amount' => 100000]);
+    $to = Account::factory()->for($user)->create(['name' => 'Target', 'initial_amount' => 0, 'amount' => 0]);
+
+    $this->actingAs($user)->post(route('transactions.store'), [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $from->id,
+        'to_account_id' => $to->id,
+        'amount' => '50',
+        'note' => 'moved money',
+        'date' => '2026-07-04',
+        'time' => '10:00',
+    ]);
+
+    foreach ([$from, $to] as $account) {
+        $this->actingAs($user)->get(route('transactions.index', ['account' => $account->id]))
+            ->assertOk()
+            ->assertSee('moved money');
+    }
+});
+
+test('filters survive the view toggle and paging', function () {
+    $user = User::factory()->create();
+    $account = Account::factory()->for($user)->create(['name' => 'Filtered', 'initial_amount' => 100000, 'amount' => 100000]);
+    $category = expense($user);
+
+    $this->actingAs($user)->post(route('transactions.store'), [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $account->id,
+        'category_id' => $category->id,
+        'amount' => '10',
+        'date' => '2026-07-04',
+        'time' => '10:00',
+    ]);
+
+    $content = $this->actingAs($user)
+        ->get(route('transactions.index', ['account' => $account->id, 'view' => 'table']))
+        ->assertOk()
+        ->getContent();
+
+    // The list/table switch carries the filter across.
+    expect($content)->toContain('view=cards&amp;account='.$account->id);
+
+    // Asking for a later page keeps filtering rather than falling back to everything.
+    $this->actingAs($user)
+        ->get(route('transactions.index', ['account' => $account->id, 'page' => 2]))
+        ->assertOk()
+        ->assertSee('1 matching transaction');
+});

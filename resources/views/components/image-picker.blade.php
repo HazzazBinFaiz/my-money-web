@@ -1,6 +1,6 @@
 @props([
     'name' => 'icon_id',
-    'type' => \App\Enums\ImageType::Icon,
+    'type' => \App\Enums\ImageType::Account,
     'image' => null,
     'label' => 'Icon',
 ])
@@ -16,11 +16,11 @@
     <input type="hidden" name="{{ $name }}" :value="selectedId">
 
     <button type="button" @click="openModal()"
-            class="group relative flex h-[69px] w-[69px] shrink-0 items-center justify-center overflow-hidden rounded-full
+            class="group relative flex h-[69px] w-[69px] shrink-0 items-center justify-center overflow-hidden avatar rounded-full
                    border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-gray-900
                    dark:border-gray-600 dark:bg-gray-900 dark:hover:border-gray-300">
         <template x-if="selectedUrl">
-            <img :src="selectedUrl" alt="" class="h-[69px] w-[69px] rounded-full object-cover">
+            <img :src="selectedUrl" alt="" class="h-[69px] w-[69px] avatar rounded-full object-cover">
         </template>
         <template x-if="!selectedUrl">
             <span class="px-1 text-center text-[11px] leading-tight text-gray-400">{{ $label }}</span>
@@ -63,7 +63,7 @@
                 <div class="min-h-0 flex-1 overflow-y-auto rounded-lg border border-gray-100 p-3 dark:border-gray-700">
                     <div class="grid grid-cols-3 justify-items-center gap-4 sm:grid-cols-5">
                         <button type="button" @click="showEditor()"
-                                class="flex h-[69px] w-[69px] flex-col items-center justify-center rounded-full border-2 border-dashed
+                                class="flex h-[69px] w-[69px] flex-col items-center justify-center avatar rounded-full border-2 border-dashed
                                        border-gray-900 text-gray-900 transition hover:bg-gray-100
                                        dark:border-gray-300 dark:text-gray-100 dark:hover:bg-gray-700">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +74,7 @@
 
                         <template x-for="image in images" :key="image.id">
                             <button type="button" @click="choose(image)"
-                                    class="h-[69px] w-[69px] overflow-hidden rounded-full ring-2 ring-transparent transition hover:ring-gray-400"
+                                    class="h-[69px] w-[69px] overflow-hidden avatar rounded-full ring-2 ring-transparent transition hover:ring-gray-400"
                                     :class="selectedId === image.id ? '!ring-gray-900 dark:!ring-white' : ''">
                                 <img :src="image.url" alt="" class="h-[69px] w-[69px] object-cover">
                             </button>

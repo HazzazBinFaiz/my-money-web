@@ -4,15 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
+use App\Lib\MbakFile;
 use App\Models\Account;
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\Contact;
+use App\Services\MbakExporter;
+use App\Services\MbakImporter;
 use App\Support\CurrentBook;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Copies contacts and categories from the user's other books into the
@@ -140,6 +145,49 @@ class BookImportController extends Controller
         });
 
         return redirect()->route('categories.index')->with('status', 'categories-imported');
+    }
+
+    /**
+     * Reads an .mbak backup exported by the mobile app.
+     */
+    public function mbak(Request $request, MbakImporter $importer): RedirectResponse
+    {
+        $request->validate([
+            'backup' => ['required', 'file', 'max:20480'],
+        ]);
+
+        $file = $request->file('backup');
+
+        if (strtolower((string) $file->getClientOriginalExtension()) !== 'mbak') {
+            return back()->withErrors(['backup' => 'Pick a .mbak backup file.']);
+        }
+
+        try {
+            $data = MbakFile::read((string) file_get_contents($file->getRealPath()));
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['backup' => $e->getMessage()]);
+        }
+
+        $summary = $importer->import($data);
+
+        return redirect()->route('books.index')
+            ->with('status', 'mbak-imported')
+            ->with('mbak_summary', $summary);
+    }
+
+    /**
+     * Writes the active book out as an .mbak the mobile app can restore.
+     */
+    public function exportMbak(MbakExporter $exporter, CurrentBook $currentBook): Response
+    {
+        $book = $currentBook->get();
+
+        $filename = Str::slug($book?->name ?: 'book').'-'.now()->format('Y-m-d-His').'.mbak';
+
+        return response($exporter->encrypted(), 200, [
+            'Content-Type' => 'application/octet-stream',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
     }
 
     /**

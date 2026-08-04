@@ -17,9 +17,20 @@ class ImageFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'type' => ImageType::Icon,
+            'type' => ImageType::Account,
             'image_name' => Str::uuid()->toString().'.png',
+            'export_icon_id' => null,
         ];
+    }
+
+    public function category(): static
+    {
+        return $this->state(fn () => ['type' => ImageType::Category]);
+    }
+
+    public function book(): static
+    {
+        return $this->state(fn () => ['type' => ImageType::Book]);
     }
 
     public function picture(): static

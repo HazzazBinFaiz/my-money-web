@@ -23,10 +23,10 @@
                    dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-white/10">
         <span class="flex min-w-0 items-center gap-2">
             <template x-if="current() && current().icon">
-                <img :src="current().icon" alt="" class="h-6 w-6 shrink-0 rounded-full object-cover">
+                <img :src="current().icon" alt="" class="h-6 w-6 shrink-0 avatar rounded-full object-cover">
             </template>
             <template x-if="current() && ! current().icon">
-                <span class="h-6 w-6 shrink-0 rounded-full bg-gray-100 dark:bg-gray-700"></span>
+                <span class="h-6 w-6 shrink-0 avatar rounded-full bg-gray-100 dark:bg-gray-700"></span>
             </template>
             <span class="truncate"
                   :class="current() ? '' : 'text-gray-400'"
@@ -51,9 +51,9 @@
                             :class="isSelected(options[{{ $index[$option['value']] }}]) ? 'bg-gray-100 dark:bg-gray-700' : ''"
                             class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition hover:bg-gray-100 dark:hover:bg-gray-700">
                         @if ($option['icon'])
-                            <img src="{{ $option['icon'] }}" alt="" class="h-7 w-7 shrink-0 rounded-full object-cover">
+                            <img src="{{ $option['icon'] }}" alt="" class="h-7 w-7 shrink-0 avatar rounded-full object-cover">
                         @else
-                            <span class="h-7 w-7 shrink-0 rounded-full bg-gray-100 dark:bg-gray-600"></span>
+                            <span class="h-7 w-7 shrink-0 avatar rounded-full bg-gray-100 dark:bg-gray-600"></span>
                         @endif
                         <span class="truncate text-gray-900 dark:text-gray-100">{{ $option['label'] }}</span>
                     </button>

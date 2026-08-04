@@ -20,6 +20,8 @@ class CategoryFactory extends Factory
             'user_id' => User::factory(),
             'book_id' => fn (array $attributes) => Book::withoutGlobalScopes()
                 ->where('user_id', $attributes['user_id'])
+                ->orderByDesc('is_default')
+                ->orderBy('id')
                 ->value('id') ?? Book::factory()->create(['user_id' => $attributes['user_id']])->id,
             'type' => fake()->randomElement(CategoryType::cases()),
             'status' => CategoryStatus::Active,

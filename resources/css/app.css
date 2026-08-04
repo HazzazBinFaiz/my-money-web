@@ -22,6 +22,15 @@
     color: #f3f4f6;
 }
 
+/* Icons and avatars: always a circle, never squashed by a flex parent. */
+.avatar {
+    flex: none;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
 /* Circular crop frame for the image picker. */
 .image-cropper .cropper-view-box,
 .image-cropper .cropper-face {

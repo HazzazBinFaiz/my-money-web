@@ -1,0 +1,96 @@
+{
+    "accounts": [
+        {
+            "amount": 5400,
+            "icon": 301,
+            "id": 1,
+            "initial": 0,
+            "name": "Cash"
+        },
+        {
+            "amount": 155,
+            "icon": 302,
+            "id": 3,
+            "initial": 500,
+            "name": "DBBL"
+        }
+    ],
+    "categories": [
+        {
+            "icon": 17,
+            "id": 1647652436565,
+            "name": "Amana",
+            "type": 1
+        },
+        {
+            "icon": 101,
+            "id": 101,
+            "name": "Awards",
+            "type": 1
+        }
+    ],
+    "records": [
+        {
+            "amount": 25000,
+            "id": 1755019400692,
+            "note": "transfer ",
+            "time": 1754672360692,
+            "transferFrom": {
+                "amount": 59000,
+                "icon": 2131230902,
+                "id": 1666883360083,
+                "initial": 0,
+                "name": "Boro vai"
+            },
+            "transferTo": {
+                "amount": 29991.39,
+                "icon": 2131230903,
+                "id": 1647405068643,
+                "initial": 0,
+                "name": "IFIC"
+            },
+            "type": 3
+        },
+        {
+            "account": {
+                "amount": -60000,
+                "icon": 2131230905,
+                "id": 1717957168316,
+                "initial": -29480,
+                "name": ".Reverse debt"
+            },
+            "amount": 50000,
+            "category": {
+                "icon": 2131230950,
+                "id": 1660706164932,
+                "name": "Adjustment",
+                "type": 2
+            },
+            "id": 1753787648832,
+            "note": "keep crypto out of calculation",
+            "time": 1753787648832,
+            "type": 2
+        },
+        {
+            "account": {
+                "amount": -60000,
+                "icon": 2131230905,
+                "id": 1717957168316,
+                "initial": -29480,
+                "name": ".Reverse debt"
+            },
+            "amount": 2420,
+            "category": {
+                "icon": 2131230983,
+                "id": 1686363770474,
+                "name": "adjustment",
+                "type": 1
+            },
+            "id": 1753787373961,
+            "note": "",
+            "time": 1753787373961,
+            "type": 1
+        }
+    ],
+    "budgets": []
+}

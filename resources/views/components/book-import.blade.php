@@ -49,10 +49,10 @@
                                        class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900/20 dark:border-gray-600">
 
                                 <template x-if="item.icon">
-                                    <img :src="item.icon" alt="" class="h-8 w-8 rounded-full object-cover">
+                                    <img :src="item.icon" alt="" class="h-8 w-8 avatar rounded-full object-cover">
                                 </template>
                                 <template x-if="! item.icon">
-                                    <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-600"></span>
+                                    <span class="h-8 w-8 avatar rounded-full bg-gray-100 dark:bg-gray-600"></span>
                                 </template>
 
                                 <span class="min-w-0 flex-1">

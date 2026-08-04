@@ -14,6 +14,9 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
             $table->tinyInteger('type');
             $table->string('image_name');
+            // Icon id the mobile app uses for this image, filled in for seeded
+            // images so exports carry an icon the app recognises.
+            $table->string('export_icon_id')->nullable();
             $table->timestamps();
 
             $table->index(['user_id', 'type']);
