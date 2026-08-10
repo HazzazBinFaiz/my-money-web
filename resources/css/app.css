@@ -31,6 +31,24 @@
     overflow: hidden;
 }
 
+/* Chart roles. Both modes are stepped for their own surface and validated
+   with the dataviz palette checker, not eyeballed. */
+.viz {
+    --viz-income: #1baf7a;
+    --viz-expense: #eb6834;
+    --viz-bar: #2a78d6;
+    --viz-grid: #e5e7eb;
+    --viz-axis: #6b7280;
+}
+
+.dark .viz {
+    --viz-income: #199e70;
+    --viz-expense: #d95926;
+    --viz-bar: #3987e5;
+    --viz-grid: #27272a;
+    --viz-axis: #9ca3af;
+}
+
 /* Circular crop frame for the image picker. */
 .image-cropper .cropper-view-box,
 .image-cropper .cropper-face {

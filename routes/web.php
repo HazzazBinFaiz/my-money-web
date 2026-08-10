@@ -5,8 +5,10 @@ use App\Http\Controllers\BookController;
 use App\Http\Controllers\BookImportController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
@@ -18,9 +20,9 @@ Route::post('/contact', [SiteController::class, 'contact'])
 Route::get('/privacy', [SiteController::class, 'privacy'])->name('privacy');
 Route::get('/terms', [SiteController::class, 'terms'])->name('terms');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', DashboardController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -44,6 +46,13 @@ Route::middleware('auth')->group(function () {
 
     Route::post('books/import/mbak', [BookImportController::class, 'mbak'])->name('books.import.mbak');
     Route::get('books/export/mbak', [BookImportController::class, 'exportMbak'])->name('books.export.mbak');
+
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('accounts', [ReportController::class, 'accounts'])->name('accounts');
+        Route::get('accounts/{account}', [ReportController::class, 'account'])->name('accounts.detail');
+        Route::get('categories', [ReportController::class, 'categories'])->name('categories');
+        Route::get('categories/{category}', [ReportController::class, 'category'])->name('categories.detail');
+    });
 
     // Served under /media because public/images holds the seeded icon files,
     // and the web server would answer /images from disk instead of the app.

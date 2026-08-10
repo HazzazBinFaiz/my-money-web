@@ -1,30 +1,28 @@
-<x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-    </div>
+<x-guest-layout :title="__('Verify email')"
+                :heading="__('Verify your email')"
+                :subheading="__('We sent a link to your inbox. Click it and you are in.')">
 
     @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600 dark:text-green-400">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
+        <div class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+            {{ __('A fresh verification link has been sent to your email address.') }}
         </div>
     @endif
 
-    <div class="mt-4 flex items-center justify-between">
-        <form method="POST" action="{{ route('verification.send') }}">
-            @csrf
+    <p class="text-sm text-gray-600 dark:text-gray-400">
+        {{ __('Did not get it? Check your spam folder, or send another.') }}
+    </p>
 
-            <div>
-                <x-primary-button>
-                    {{ __('Resend Verification Email') }}
-                </x-primary-button>
-            </div>
+    <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <form method="POST" action="{{ route('verification.send') }}" class="sm:flex-1">
+            @csrf
+            <x-ui.button class="w-full !h-11">{{ __('Resend verification email') }}</x-ui.button>
         </form>
 
         <form method="POST" action="{{ route('logout') }}">
             @csrf
-
-            <button type="submit" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
-                {{ __('Log Out') }}
+            <button type="submit"
+                    class="text-sm font-medium text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-gray-200">
+                {{ __('Log out') }}
             </button>
         </form>
     </div>

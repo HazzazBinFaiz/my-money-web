@@ -1,3 +1,14 @@
+@php
+    $reportMenu = [
+        ['label' => __('Expense Overview'), 'route' => null],
+        ['label' => __('Income Overview'), 'route' => null],
+        ['label' => __('Expense Flow'), 'route' => null],
+        ['label' => __('Income Flow'), 'route' => null],
+        ['label' => __('Account Analysis'), 'route' => 'reports.accounts'],
+        ['label' => __('Category Analysis'), 'route' => 'reports.categories'],
+    ];
+@endphp
+
 <nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,6 +41,40 @@
                     <x-nav-link :href="route('books.index')" :active="request()->routeIs('books.*')">
                         {{ __('Books') }}
                     </x-nav-link>
+                    <!-- Reports -->
+                    <div class="relative flex items-center" x-data="{ open: false }" @click.outside="open = false">
+                        <button type="button" @click="open = ! open"
+                                class="inline-flex h-16 items-center gap-1 border-b-2 px-1 text-sm font-medium leading-5 transition
+                                       focus:outline-none {{ request()->routeIs('reports.*')
+                                           ? 'border-indigo-400 text-gray-900 dark:border-indigo-600 dark:text-gray-100'
+                                           : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300' }}">
+                            {{ __('Reports') }}
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+
+                        <div x-show="open" x-cloak @click="open = false"
+                             class="absolute start-0 top-14 z-50 w-56 overflow-hidden rounded-md border border-gray-200 bg-white py-1
+                                    shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                            @foreach ($reportMenu as $item)
+                                @if ($item['route'])
+                                    <a href="{{ route($item['route']) }}"
+                                       class="block px-4 py-2 text-sm transition hover:bg-gray-100 dark:hover:bg-gray-700 {{ request()->routeIs($item['route'])
+                                           ? 'font-semibold text-gray-900 dark:text-white'
+                                           : 'text-gray-600 dark:text-gray-300' }}">
+                                        {{ $item['label'] }}
+                                    </a>
+                                @else
+                                    <span class="flex items-center justify-between px-4 py-2 text-sm text-gray-400 dark:text-gray-500">
+                                        {{ $item['label'] }}
+                                        <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium dark:bg-gray-700">{{ __('Soon') }}</span>
+                                    </span>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -105,6 +150,20 @@
             <x-responsive-nav-link :href="route('books.index')" :active="request()->routeIs('books.*')">
                 {{ __('Books') }}
             </x-responsive-nav-link>
+
+            <p class="px-4 pb-1 pt-3 text-xs font-medium uppercase tracking-wide text-gray-400">{{ __('Reports') }}</p>
+
+            @foreach ($reportMenu as $item)
+                @if ($item['route'])
+                    <x-responsive-nav-link :href="route($item['route'])" :active="request()->routeIs($item['route'])">
+                        {{ $item['label'] }}
+                    </x-responsive-nav-link>
+                @else
+                    <span class="block border-l-4 border-transparent py-2 pe-4 ps-3 text-base font-medium text-gray-400 dark:text-gray-500">
+                        {{ $item['label'] }} · {{ __('Soon') }}
+                    </span>
+                @endif
+            @endforeach
         </div>
 
         <!-- Responsive Settings Options -->

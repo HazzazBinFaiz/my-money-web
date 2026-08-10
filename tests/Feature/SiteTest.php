@@ -10,7 +10,7 @@ test('the landing page renders with its sections and calls to action', function 
         ->assertSee('Up and running in three steps')
         ->assertSee('Questions people ask first')
         ->assertSee('Start tracking this month')
-        ->assertSee('screenshot-transactions.png', false)
+        ->assertSee('Add Bulk Transaction')
         ->assertSee(config('app.name'))
         ->assertSee('Get started')
         ->assertSee('id="features"', false)
@@ -27,6 +27,17 @@ test('the header points a signed in visitor at the dashboard', function () {
         ->assertOk()
         ->assertSee('Open your dashboard')
         ->assertSee(route('dashboard'));
+});
+
+test('every layout points the browser at the logo for its tab icon', function () {
+    $user = User::factory()->create();
+
+    // Marketing, auth, app shell and error pages each carry the icon links.
+    foreach ([route('site.home'), route('login'), '/no-such-page'] as $url) {
+        $this->get($url)->assertSee('apple-touch-icon', false);
+    }
+
+    $this->actingAs($user)->get(route('dashboard'))->assertSee('apple-touch-icon', false);
 });
 
 test('the legal pages render', function () {
