@@ -855,7 +855,10 @@ test('the money flow page renders its diagram and the table behind it', function
         // Both filters, and the numbers repeated without a hover.
         ->assertSee('All accounts')
         ->assertSee('All categories')
-        ->assertSee('viz-ribbon', false)
+        // The diagram is laid out in the browser, so the page carries the graph
+        // rather than the ribbons.
+        ->assertSee('moneyFlow(', false)
+        ->assertSee('account-'.$cash->id, false)
         ->assertSee('Kept');
 });
 

@@ -175,9 +175,14 @@ web server would answer from disk before Laravel ever saw the request.
 
 ### Charts
 
-Charts are plain HTML and CSS — donut slices are stroked SVG circles, the Sankey ribbons are two
-cubic curves each (a transfer loops from one account's right edge back to another's left), the
-flow calendars are CSS grids: no charting library. The flow reports filter by account and category; the overviews filter
+Charts are plain HTML and CSS with one exception: donut slices are stroked SVG circles and the flow
+calendars are CSS grids, but Money Flow's Sankey uses **d3-sankey-circular** for its layout. That
+library earns its place by ordering nodes to reduce crossings and by routing an account-to-account
+transfer as a real circular link — a cycle that stock `d3-sankey` refuses outright. The three
+columns are pinned through a custom `nodeAlign`, because a transfer makes the receiving account one
+hop deeper and the layout would otherwise give it a column of its own. Painting stays ours: colours
+are CSS classes over the same `--viz-*` variables, and the table under the diagram carries the same
+figures for anyone without JavaScript. The flow reports filter by account and category; the overviews filter
 by account only, since the pie is already the category split. An account filter matches the side
 the money moved on (out of it for expense, into it for income), so a transfer's arrival never
 reads as income. Colours are CSS roles (`--viz-income`,
