@@ -45,13 +45,37 @@
     @if ($points->isEmpty())
         <p class="px-4 py-12 text-center text-sm text-gray-500 sm:px-6">{{ $empty }}</p>
     @else
-        <div class="overflow-x-auto p-4 sm:p-6" x-data="{ hovered: null }">
+        <div class="overflow-x-auto p-4 sm:p-6" x-data="{
+            hovered: null,
+            at: { left: 0, top: 0 },
+
+            // The tooltip is positioned in viewport coordinates and lives outside
+            // the scrolling plot area, so it cannot be clipped by it.
+            show(point, el) {
+                const box = el.getBoundingClientRect();
+
+                // Anchor to the taller of the two bars, not to the group: the
+                // group fills the plot, so its top is the top of the chart.
+                const bars = [...el.children].map((bar) => bar.getBoundingClientRect().top);
+
+                this.at = {
+                    left: Math.min(Math.max(box.left + box.width / 2, 96), window.innerWidth - 96),
+                    top: Math.min(...bars, box.bottom) - 10,
+                };
+
+                this.hovered = point;
+            },
+
+            hide() {
+                this.hovered = null;
+            },
+        }">
             <div class="relative min-w-full" style="min-width: {{ max(320, $points->count() * 72) }}px">
                 <!-- Tooltip -->
                 <div x-show="hovered" x-cloak
-                     class="pointer-events-none absolute -top-1 z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-gray-200
+                     class="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-lg border border-gray-200
                             bg-white px-3 py-2 text-xs shadow-lg dark:border-gray-700 dark:bg-gray-800"
-                     :style="`left: ${hovered?.x}%`">
+                     :style="`left: ${at.left}px; top: ${at.top}px`">
                     <p class="font-medium text-gray-500 dark:text-gray-400" x-text="hovered?.label"></p>
                     <p class="mt-1 flex items-center gap-2">
                         <span class="h-0.5 w-3 rounded" style="background: var(--viz-income)"></span>
@@ -69,10 +93,10 @@
                     @foreach ($points as $index => $point)
                         <div class="group flex h-full flex-1 items-end justify-center gap-1"
                              tabindex="0"
-                             @mouseenter="hovered = @js($point + ['x' => ($index + 0.5) / max(1, $points->count()) * 100])"
-                             @focus="hovered = @js($point + ['x' => ($index + 0.5) / max(1, $points->count()) * 100])"
-                             @mouseleave="hovered = null"
-                             @blur="hovered = null">
+                             @mouseenter="show(@js($point), $el)"
+                             @focus="show(@js($point), $el)"
+                             @mouseleave="hide()"
+                             @blur="hide()">
                             <div class="w-full max-w-[26px] rounded-t transition-opacity group-hover:opacity-80 group-focus:opacity-80"
                                  style="height: {{ max($point['incomeShare'] * 100, $point['income'] > 0 ? 1.5 : 0) }}%; background: var(--viz-income)"></div>
                             <div class="w-full max-w-[26px] rounded-t transition-opacity group-hover:opacity-80 group-focus:opacity-80"

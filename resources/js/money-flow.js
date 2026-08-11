@@ -5,14 +5,16 @@ const SVG = 'http://www.w3.org/2000/svg';
 /**
  * The Money Flow Sankey.
  *
- * The layout comes from d3-sankey-circular, which does two things the hand
- * rolled version could not: it orders nodes to reduce crossings, and it routes
- * an account to account transfer as a proper circular link instead of a loop
- * bent by hand.
+ * The layout comes from d3-sankey-circular, which orders nodes to reduce
+ * crossings — the thing the hand rolled version could not do.
  *
- * Everything else stays ours — colours come from the CSS variables so the chart
- * follows the theme, and the table under the diagram carries the same numbers
- * for anyone who cannot use it.
+ * The drawing is ours. A straight link is a filled band, because the library's
+ * own stroked centre line meets a node on a slant wherever the link rises. A
+ * transfer between two accounts is a funnel at each end joined by a stroked S,
+ * because that route doubles back across the column and a band cannot.
+ *
+ * Colours come from the CSS variables so the chart follows the theme, and the
+ * table under the diagram carries the same numbers for anyone who cannot use it.
  */
 export default function moneyFlow(payload) {
     return {
@@ -189,8 +191,8 @@ export default function moneyFlow(payload) {
          *
          * The two funnels are filled, so each end keeps its full width against
          * its node and the amount still reads at the joint. The S between them is
-         * a stroked line of the neck's width — a thin filled band doubling back
-         * on itself crosses its own boundaries and renders as lens shaped blobs.
+         * a stroked line of the neck's width — a filled band on that route
+         * doubles back across its own boundaries and renders as lens shaped blobs.
          */
         transfer(link) {
             const group = document.createElementNS(SVG, 'g');
