@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('expenses', [ReportController::class, 'expenses'])->name('expenses');
         Route::get('incomes', [ReportController::class, 'incomes'])->name('incomes');
+        Route::get('money-flow', [ReportController::class, 'moneyFlow'])->name('money-flow');
         Route::get('expense-flow', [ReportController::class, 'expenseFlow'])->name('expense-flow');
         Route::get('income-flow', [ReportController::class, 'incomeFlow'])->name('income-flow');
         Route::get('flow/{type}/{date}', [ReportController::class, 'flowDay'])->name('flow.day');

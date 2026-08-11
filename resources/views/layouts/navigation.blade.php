@@ -1,5 +1,6 @@
 @php
     $reportMenu = [
+        ['label' => __('Money Flow'), 'route' => 'reports.money-flow'],
         ['label' => __('Expense Overview'), 'route' => 'reports.expenses'],
         ['label' => __('Income Overview'), 'route' => 'reports.incomes'],
         ['label' => __('Expense Flow'), 'route' => 'reports.expense-flow'],

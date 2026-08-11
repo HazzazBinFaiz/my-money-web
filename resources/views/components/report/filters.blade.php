@@ -6,6 +6,8 @@
     'categories' => null,
     // Which side the page is on, so the account label says what it means.
     'income' => false,
+    // Reports that show both sides at once label neutrally and offer every category.
+    'both' => false,
 ])
 
 @php
@@ -19,8 +21,11 @@
 
     $side = $income ? CategoryType::Income : CategoryType::Expense;
 
-    // Only the side's own categories can ever match.
-    $categoryOptions = $categories?->where('type', $side);
+    // Only the side's own categories can match, unless both sides are on screen.
+    $categoryGroups = $both
+        ? [CategoryType::Income->label() => $categories?->where('type', CategoryType::Income),
+           CategoryType::Expense->label() => $categories?->where('type', CategoryType::Expense)]
+        : [null => $categories?->where('type', $side)];
 
     // The range travels with the filter, either as a preset or as raw dates.
     $rangeFields = $range->preset === 'custom'
@@ -34,7 +39,7 @@
             <input type="hidden" name="{{ $name }}" value="{{ $value }}">
         @endforeach
 
-        <x-ui.field :label="$income ? __('Received into') : __('Paid from')" class="w-full sm:w-56">
+        <x-ui.field :label="$both ? __('Account') : ($income ? __('Received into') : __('Paid from'))" class="w-full sm:w-56">
             <x-ui.select name="account" @change="$el.form.submit()" x-data>
                 <option value="">{{ __('All accounts') }}</option>
                 @foreach ($accountGroups as $groupLabel => $group)
@@ -49,12 +54,24 @@
             </x-ui.select>
         </x-ui.field>
 
-        @if ($categoryOptions)
+        @if ($categories)
             <x-ui.field :label="__('Category')" class="w-full sm:w-56">
                 <x-ui.select name="category" @change="$el.form.submit()" x-data>
                     <option value="">{{ __('All categories') }}</option>
-                    @foreach ($categoryOptions as $category)
-                        <option value="{{ $category->id }}" @selected($filter->categoryId == $category->id)>{{ $category->name }}</option>
+                    @foreach ($categoryGroups as $groupLabel => $group)
+                        @if ($group?->isNotEmpty())
+                            @if ($groupLabel)
+                                <optgroup label="{{ $groupLabel }}">
+                            @endif
+
+                            @foreach ($group as $category)
+                                <option value="{{ $category->id }}" @selected($filter->categoryId == $category->id)>{{ $category->name }}</option>
+                            @endforeach
+
+                            @if ($groupLabel)
+                                </optgroup>
+                            @endif
+                        @endif
                     @endforeach
                 </x-ui.select>
             </x-ui.field>

@@ -176,6 +176,212 @@ class ReportSummary
     }
 
     /**
+     * Income categories → accounts → expense categories, for the Sankey.
+     *
+     * Node heights are max(in, out): an account that spent half what it took in
+     * is fully joined on its left and half joined on its right, which is the
+     * point of drawing it this way.
+     *
+     * A transfer joins two account nodes directly: it leaves the source's right
+     * edge below its spending and arrives at the top of the target's left edge.
+     * Only the amount travels that way — the charge left the book, so it sits
+     * with the spending. The in and out headlines count only money crossing the
+     * book's edge, never a transfer.
+     *
+     * @return array{
+     *     income: Collection<int, array<string, mixed>>,
+     *     accounts: Collection<int, array<string, mixed>>,
+     *     expense: Collection<int, array<string, mixed>>,
+     *     links: Collection<int, array<string, mixed>>,
+     *     total_in: int, total_out: int
+     * }
+     */
+    public function moneyFlow(DateRange $range, ?ReportFilter $filter = null): array
+    {
+        [$incomeFilter, $expenseFilter] = $this->splitFilter($filter);
+
+        $links = [];
+        $incoming = [];
+        $outgoing = [];
+        $categoryTotals = [];
+
+        foreach ($this->sideOf(CategoryType::Income, $range, $incomeFilter)
+            ->get(['type', 'amount', 'charge', 'category_id', 'to_account_id']) as $row) {
+            if (! $row->category_id || ! $row->to_account_id) {
+                continue;
+            }
+
+            $value = $this->flowValue($row, true);
+
+            if ($value <= 0) {
+                continue;
+            }
+
+            $key = 'in:'.$row->category_id.':'.$row->to_account_id;
+            $links[$key] = [
+                'side' => 'income',
+                'source' => 'category-'.$row->category_id,
+                'target' => 'account-'.$row->to_account_id,
+                'value' => ($links[$key]['value'] ?? 0) + $value,
+            ];
+
+            $categoryTotals[$row->category_id] = ($categoryTotals[$row->category_id] ?? 0) + $value;
+            $incoming[$row->to_account_id] = ($incoming[$row->to_account_id] ?? 0) + $value;
+        }
+
+        $charges = [];
+
+        foreach ($this->sideOf(CategoryType::Expense, $range, $expenseFilter)
+            ->get(['type', 'amount', 'charge', 'category_id', 'from_account_id']) as $row) {
+            if (! $row->from_account_id) {
+                continue;
+            }
+
+            $value = $this->flowValue($row, false);
+
+            if ($value <= 0) {
+                continue;
+            }
+
+            // Charges have no category of their own; they share one node.
+            $isCharge = $this->typeOf($row) === TransactionType::Transfer;
+
+            if (! $isCharge && ! $row->category_id) {
+                continue;
+            }
+
+            $target = $isCharge ? 'charges' : 'category-'.$row->category_id;
+            $key = 'out:'.$row->from_account_id.':'.$target;
+
+            $links[$key] = [
+                'side' => 'expense',
+                'source' => 'account-'.$row->from_account_id,
+                'target' => $target,
+                'value' => ($links[$key]['value'] ?? 0) + $value,
+            ];
+
+            if ($isCharge) {
+                $charges['charges'] = ($charges['charges'] ?? 0) + $value;
+            } else {
+                $categoryTotals[$row->category_id] = ($categoryTotals[$row->category_id] ?? 0) + $value;
+            }
+
+            $outgoing[$row->from_account_id] = ($outgoing[$row->from_account_id] ?? 0) + $value;
+        }
+
+        // The headline figures are money crossing the book's edge, so they are
+        // taken before transfers, which only shuffle it about inside.
+        $totalIn = (int) array_sum($incoming);
+        $totalOut = (int) array_sum($outgoing);
+
+        // Transfers move money without it entering or leaving the book, so they
+        // join two accounts directly. Only the amount rides this ribbon; the
+        // charge left the book and is already on the expense side.
+        if (! $filter?->categoryId) {
+            $transfers = $this->scoped($range)
+                ->where('type', TransactionType::Transfer)
+                ->whereNotNull('from_account_id')
+                ->whereNotNull('to_account_id')
+                ->when($filter?->accountId, fn (Builder $query, int $id) => $query->where(
+                    fn (Builder $sides) => $sides->where('from_account_id', $id)->orWhere('to_account_id', $id)
+                ))
+                ->get(['amount', 'from_account_id', 'to_account_id']);
+
+            foreach ($transfers as $row) {
+                if ($row->amount <= 0 || $row->from_account_id === $row->to_account_id) {
+                    continue;
+                }
+
+                $key = 'move:'.$row->from_account_id.':'.$row->to_account_id;
+
+                $links[$key] = [
+                    'side' => 'transfer',
+                    'source' => 'account-'.$row->from_account_id,
+                    'target' => 'account-'.$row->to_account_id,
+                    'value' => ($links[$key]['value'] ?? 0) + $row->amount,
+                ];
+
+                $outgoing[$row->from_account_id] = ($outgoing[$row->from_account_id] ?? 0) + $row->amount;
+                $incoming[$row->to_account_id] = ($incoming[$row->to_account_id] ?? 0) + $row->amount;
+            }
+        }
+
+        $categories = Category::with('icon')->whereIn('id', array_keys($categoryTotals))->get()->keyBy('id');
+
+        $node = fn (string $id, string $name, int $total, $icon = null) => [
+            'id' => $id,
+            'name' => $name,
+            'total' => $total,
+            'icon' => $icon,
+        ];
+
+        $income = $categories
+            ->filter(fn (Category $category) => $category->type === CategoryType::Income)
+            ->map(fn (Category $category) => $node(
+                'category-'.$category->id, $category->name, (int) $categoryTotals[$category->id], $category->icon
+            ))
+            ->sortByDesc('total')
+            ->values();
+
+        $expense = $categories
+            ->filter(fn (Category $category) => $category->type === CategoryType::Expense)
+            ->map(fn (Category $category) => $node(
+                'category-'.$category->id, $category->name, (int) $categoryTotals[$category->id], $category->icon
+            ))
+            ->sortByDesc('total')
+            ->values();
+
+        if (($charges['charges'] ?? 0) > 0) {
+            $expense->push($node('charges', __('Transfer charges'), (int) $charges['charges']));
+            $expense = $expense->sortByDesc('total')->values();
+        }
+
+        $accounts = Account::with('icon')
+            ->whereIn('id', array_unique([...array_keys($incoming), ...array_keys($outgoing)]))
+            ->get()
+            ->map(fn (Account $account) => $node(
+                'account-'.$account->id,
+                $account->name,
+                (int) max($incoming[$account->id] ?? 0, $outgoing[$account->id] ?? 0),
+                $account->icon,
+            ) + [
+                'in' => (int) ($incoming[$account->id] ?? 0),
+                'out' => (int) ($outgoing[$account->id] ?? 0),
+            ])
+            ->sortByDesc('total')
+            ->values();
+
+        return [
+            'income' => $income,
+            'accounts' => $accounts,
+            'expense' => $expense,
+            'links' => collect(array_values($links))->sortByDesc('value')->values(),
+            'total_in' => $totalIn,
+            'total_out' => $totalOut,
+        ];
+    }
+
+    /**
+     * A category filter only speaks for its own side of the diagram; the other
+     * side keeps its full picture, or the accounts would have nothing to stand on.
+     *
+     * @return array{0: ?ReportFilter, 1: ?ReportFilter}
+     */
+    private function splitFilter(?ReportFilter $filter): array
+    {
+        if (! $filter || $filter->categoryId === null) {
+            return [$filter, $filter];
+        }
+
+        $type = Category::whereKey($filter->categoryId)->value('type');
+        $account = new ReportFilter($filter->accountId);
+
+        return $type === CategoryType::Income
+            ? [$filter, $account]
+            : [$account, $filter];
+    }
+
+    /**
      * One side of the ledger totalled per calendar day, for the flow calendar.
      *
      * Same arithmetic as the overview, so a month of cells adds up to what the

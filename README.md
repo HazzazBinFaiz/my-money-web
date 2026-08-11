@@ -175,8 +175,9 @@ web server would answer from disk before Laravel ever saw the request.
 
 ### Charts
 
-Charts are plain HTML and CSS — donut slices are stroked SVG circles, the flow calendars are CSS
-grids: no charting library. The flow reports filter by account and category; the overviews filter
+Charts are plain HTML and CSS — donut slices are stroked SVG circles, the Sankey ribbons are two
+cubic curves each (a transfer loops from one account's right edge back to another's left), the
+flow calendars are CSS grids: no charting library. The flow reports filter by account and category; the overviews filter
 by account only, since the pie is already the category split. An account filter matches the side
 the money moved on (out of it for expense, into it for income), so a transfer's arrival never
 reads as income. Colours are CSS roles (`--viz-income`,
@@ -207,9 +208,9 @@ balance), and that a server error renders the 500 page without leaking the excep
 
 ## Status
 
-Built: books, accounts, contacts, categories, transactions (single and bulk), dashboard, all six
-reports (Expense/Income Overview, Expense/Income Flow, Account and Category analysis), `.mbak` and
-Excel export, the marketing site and legal pages.
+Built: books, accounts, contacts, categories, transactions (single and bulk), dashboard, seven
+reports (Money Flow, Expense/Income Overview, Expense/Income Flow, Account and Category analysis),
+`.mbak` and Excel export, the marketing site and legal pages.
 
 Next: budgets (the `.mbak` format carries a `budgets` array we currently
 discard), and book-level sharing.

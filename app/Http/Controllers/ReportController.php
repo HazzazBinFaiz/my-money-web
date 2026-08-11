@@ -62,6 +62,18 @@ class ReportController extends Controller
         ] + $this->filterOptions());
     }
 
+    public function moneyFlow(Request $request, ReportSummary $summary): View
+    {
+        $range = $this->range($request);
+        $filter = ReportFilter::fromRequest($request);
+
+        return view('reports.money-flow', [
+            'range' => $range,
+            'filter' => $filter,
+            'flow' => $summary->moneyFlow($range, $filter),
+        ] + $this->filterOptions());
+    }
+
     public function expenseFlow(Request $request, ReportSummary $summary): View
     {
         return $this->flow(CategoryType::Expense, $request, $summary);

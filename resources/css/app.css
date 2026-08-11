@@ -71,7 +71,48 @@
     --viz-cat-7: #a681c9;
     --viz-cat-8: #9bb84a;
     --viz-cat-rest: #6b7280;
-    --viz-surface: #111827;
+    /* The card colour, since the donut hole and the label halos are punched
+       out of it. */
+    --viz-surface: #1f2937;
+}
+
+/* Sankey: ribbons dim for the one under the pointer, labels keep a halo so
+   they stay legible where a ribbon runs behind them. */
+.viz-ribbon {
+    transition: fill-opacity 120ms ease;
+    outline: none;
+}
+
+.viz-ribbons:hover .viz-ribbon,
+.viz-ribbons:focus-within .viz-ribbon {
+    fill-opacity: 0.12;
+}
+
+.viz-ribbons .viz-ribbon:hover,
+.viz-ribbons .viz-ribbon:focus-visible {
+    fill-opacity: 0.75;
+}
+
+.viz-label {
+    font-size: 12px;
+    fill: #374151;
+    paint-order: stroke;
+    stroke: var(--viz-surface);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+}
+
+.dark .viz-label {
+    fill: #e5e7eb;
+}
+
+.viz-label-value {
+    font-size: 11px;
+    fill: #6b7280;
+}
+
+.dark .viz-label-value {
+    fill: #9ca3af;
 }
 
 /* Slice hover and keyboard focus, so the tooltip has a visible anchor. */

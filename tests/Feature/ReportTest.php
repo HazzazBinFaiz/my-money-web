@@ -654,6 +654,219 @@ test('the overview offers no category filter', function () {
         ->assertSee('All categories');
 });
 
+test('money flow joins income categories to accounts to expense categories', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'salary' => $salary, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '100',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '40',
+    ]);
+
+    $this->actingAs($user);
+
+    $flow = app(ReportSummary::class)->moneyFlow(DateRange::fromRequest(null, '2026-08-01', '2026-08-31'));
+
+    $account = $flow['accounts']->firstWhere('id', 'account-'.$cash->id);
+
+    expect($flow['income']->pluck('id')->all())->toBe(['category-'.$salary->id])
+        ->and($flow['expense']->pluck('id')->all())->toBe(['category-'.$food->id])
+        // Spent less than it took in, so the node stands as tall as the income.
+        ->and($account['in'])->toBe(10000)
+        ->and($account['out'])->toBe(4000)
+        ->and($account['total'])->toBe(10000)
+        ->and($flow['links']->pluck('value', 'source')->all())->toBe([
+            'category-'.$salary->id => 10000,
+            'account-'.$cash->id => 4000,
+        ])
+        ->and($flow['total_in'])->toBe(10000)
+        ->and($flow['total_out'])->toBe(4000)
+        // An account with no movement of its own stays off the diagram.
+        ->and($flow['accounts']->pluck('id'))->not->toContain('account-'.$bank->id);
+});
+
+test('a transfer joins the two accounts and its charge lands as spending', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'salary' => $salary] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '100',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $cash->id, 'to_account_id' => $bank->id, 'amount' => '50', 'charge' => '2',
+    ]);
+
+    $this->actingAs($user);
+
+    $flow = app(ReportSummary::class)->moneyFlow(DateRange::fromRequest(null, '2026-08-01', '2026-08-31'));
+
+    $move = $flow['links']->firstWhere('side', 'transfer');
+
+    // The 50 moved inside the book: it joins the accounts but never counts as
+    // money in or out. Only the charge left.
+    expect($flow['total_out'])->toBe(200)
+        ->and($flow['total_in'])->toBe(10000)
+        ->and($move['source'])->toBe('account-'.$cash->id)
+        ->and($move['target'])->toBe('account-'.$bank->id)
+        ->and($move['value'])->toBe(5000)
+        ->and($flow['expense']->pluck('id')->all())->toBe(['charges'])
+        ->and($flow['expense']->first()['name'])->toBe('Transfer charges')
+        ->and($flow['links']->firstWhere('target', 'charges')['value'])->toBe(200)
+        // The receiving account is now on the diagram, joined on its left.
+        ->and($flow['accounts']->firstWhere('id', 'account-'.$bank->id)['in'])->toBe(5000);
+});
+
+test('an account filter keeps the transfers on either side of it', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'salary' => $salary] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '100',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $cash->id, 'to_account_id' => $bank->id, 'amount' => '50',
+    ]);
+
+    $this->actingAs($user);
+
+    $range = DateRange::fromRequest(null, '2026-08-01', '2026-08-31');
+    $summary = app(ReportSummary::class);
+
+    // Whichever end is picked, the same ribbon belongs on the diagram.
+    foreach ([$cash->id, $bank->id] as $id) {
+        expect($summary->moneyFlow($range, new ReportFilter($id))['links']->where('side', 'transfer'))
+            ->toHaveCount(1);
+    }
+});
+
+test('a category filter leaves transfers out, having no category to match', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'salary' => $salary] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '100',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $cash->id, 'to_account_id' => $bank->id, 'amount' => '50',
+    ]);
+
+    $this->actingAs($user);
+
+    $flow = app(ReportSummary::class)->moneyFlow(
+        DateRange::fromRequest(null, '2026-08-01', '2026-08-31'),
+        new ReportFilter(null, $salary->id),
+    );
+
+    expect($flow['links']->where('side', 'transfer'))->toBeEmpty();
+});
+
+test('an account node is as tall as its bigger side', function () {
+    ['user' => $user, 'cash' => $cash, 'salary' => $salary, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '30',
+    ]);
+
+    // Spending out of an opening balance: more goes out than came in.
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '80',
+    ]);
+
+    $this->actingAs($user);
+
+    $flow = app(ReportSummary::class)->moneyFlow(DateRange::fromRequest(null, '2026-08-01', '2026-08-31'));
+
+    expect($flow['accounts']->first()['total'])->toBe(8000);
+});
+
+test('money flow filters narrow the side they belong to', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'salary' => $salary, 'food' => $food] = ledger();
+
+    $rent = Category::factory()->for($user)->create([
+        'name' => 'Rent', 'type' => CategoryType::Expense, 'status' => CategoryStatus::Active,
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '100',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '40',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $bank->id, 'category_id' => $rent->id, 'amount' => '70',
+    ]);
+
+    $this->actingAs($user);
+
+    $range = DateRange::fromRequest(null, '2026-08-01', '2026-08-31');
+    $summary = app(ReportSummary::class);
+
+    // An expense category narrows the right side; the left keeps its picture,
+    // or the accounts it fed would be left standing on nothing.
+    $byCategory = $summary->moneyFlow($range, new ReportFilter(null, $rent->id));
+
+    expect($byCategory['expense']->pluck('name')->all())->toBe(['Rent'])
+        ->and($byCategory['income']->pluck('name')->all())->toBe(['Salary'])
+        ->and($byCategory['total_out'])->toBe(7000);
+
+    $byAccount = $summary->moneyFlow($range, new ReportFilter($cash->id));
+
+    expect($byAccount['accounts']->pluck('id')->all())->toBe(['account-'.$cash->id])
+        ->and($byAccount['expense']->pluck('name')->all())->toBe(['Groceries']);
+});
+
+test('the money flow page renders its diagram and the table behind it', function () {
+    ['user' => $user, 'cash' => $cash, 'salary' => $salary, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '100',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '40',
+    ]);
+
+    $this->actingAs($user)->get(route('reports.money-flow', ['from' => '2026-08-01', 'to' => '2026-08-31']))
+        ->assertOk()
+        ->assertSee('Money Flow')
+        ->assertSee('Where the money came from, and where it went')
+        ->assertSee('Salary')
+        ->assertSee('Groceries')
+        ->assertSee('Cash')
+        // Both filters, and the numbers repeated without a hover.
+        ->assertSee('All accounts')
+        ->assertSee('All categories')
+        ->assertSee('viz-ribbon', false)
+        ->assertSee('Kept');
+});
+
+test('money flow says so when nothing moved', function () {
+    ['user' => $user] = ledger();
+
+    $this->actingAs($user)->get(route('reports.money-flow'))
+        ->assertOk()
+        ->assertSee('Nothing moved in this range.');
+});
+
 test('the reports menu links every report', function () {
     $user = User::factory()->create();
 
@@ -662,6 +875,7 @@ test('the reports menu links every report', function () {
         ->assertSee('Account Analysis')
         ->assertSee('Category Analysis')
         ->assertSee('Expense Overview')
+        ->assertSee('Money Flow')
         ->assertSee('Income Flow')
         ->assertSee(route('reports.expense-flow'), false)
         ->assertSee(route('reports.incomes'), false)
