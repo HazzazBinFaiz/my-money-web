@@ -46,8 +46,15 @@ Route::middleware('auth')->group(function () {
 
     Route::post('books/import/mbak', [BookImportController::class, 'mbak'])->name('books.import.mbak');
     Route::get('books/export/mbak', [BookImportController::class, 'exportMbak'])->name('books.export.mbak');
+    Route::get('books/export/excel', [BookImportController::class, 'exportExcel'])->name('books.export.excel');
 
     Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('expenses', [ReportController::class, 'expenses'])->name('expenses');
+        Route::get('incomes', [ReportController::class, 'incomes'])->name('incomes');
+        Route::get('expense-flow', [ReportController::class, 'expenseFlow'])->name('expense-flow');
+        Route::get('income-flow', [ReportController::class, 'incomeFlow'])->name('income-flow');
+        Route::get('flow/{type}/{date}', [ReportController::class, 'flowDay'])->name('flow.day');
+        Route::get('overview/{category}', [ReportController::class, 'overviewDetail'])->name('overview.detail');
         Route::get('accounts', [ReportController::class, 'accounts'])->name('accounts');
         Route::get('accounts/{account}', [ReportController::class, 'account'])->name('accounts.detail');
         Route::get('categories', [ReportController::class, 'categories'])->name('categories');

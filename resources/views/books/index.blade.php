@@ -130,8 +130,8 @@
             </x-ui.card>
 
             <!-- Export -->
-            <x-ui.card :title="__('Export to .mbak')"
-                       :description="__('Download this book in the mobile app backup format.')">
+            <x-ui.card :title="__('Export')"
+                       :description="__('Take this book with you, as a spreadsheet or as a mobile app backup.')">
                 <div class="flex flex-wrap items-center gap-3 p-4 sm:p-6">
                     <a href="{{ route('books.export.mbak') }}"
                        class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-gray-900 px-4 text-sm font-medium
@@ -143,8 +143,19 @@
                         {{ __('Download .mbak') }}
                     </a>
 
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                        {{ __('Charges are exported as separate "Transfer Charge" expenses, and inactive accounts get a leading dot.') }}
+                    <a href="{{ route('books.export.excel') }}"
+                       class="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm
+                              font-medium text-gray-900 shadow-sm transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900
+                              dark:text-gray-100 dark:hover:bg-gray-800">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 17v-6h6v6M5 21h14a2 2 0 002-2V7l-4-4H5a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        {{ __('Download Excel') }}
+                    </a>
+
+                    <p class="w-full text-xs text-gray-500 dark:text-gray-400">
+                        {{ __('The workbook has a sheet each for transactions, accounts, categories and contacts. In the .mbak, charges become separate "Transfer Charge" expenses and inactive accounts get a leading dot.') }}
                     </p>
                 </div>
             </x-ui.card>

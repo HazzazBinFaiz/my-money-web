@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\User;
 use App\Services\ReportSummary;
 use App\Support\DateRange;
+use App\Support\ReportFilter;
 
 function ledger(): array
 {
@@ -224,7 +225,436 @@ test('reports stay inside the active book', function () {
     $this->actingAs($user)->get(route('reports.accounts.detail', $cash))->assertNotFound();
 });
 
-test('the reports menu lists every report, with the unbuilt ones marked', function () {
+test('the overview pages render their pie, total and share column', function () {
+    ['user' => $user, 'cash' => $cash, 'salary' => $salary, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '75',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '300',
+    ]);
+
+    $query = ['from' => '2026-08-01', 'to' => '2026-08-31'];
+
+    $this->actingAs($user)->get(route('reports.expenses', $query))
+        ->assertOk()
+        ->assertSee('Expense Overview')
+        ->assertSee('Where the money went')
+        ->assertSee('Groceries')
+        ->assertSee('100.0%')
+        ->assertDontSee('Salary');
+
+    $this->actingAs($user)->get(route('reports.incomes', $query))
+        ->assertOk()
+        ->assertSee('Income Overview')
+        ->assertSee('Where the income came from')
+        ->assertSee('Salary')
+        ->assertDontSee('Groceries');
+});
+
+test('overview shares are of the side total and add up to the whole', function () {
+    ['user' => $user, 'cash' => $cash, 'food' => $food] = ledger();
+
+    $rent = Category::factory()->for($user)->create([
+        'name' => 'Rent', 'type' => CategoryType::Expense, 'status' => CategoryStatus::Active,
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '25',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $rent->id, 'amount' => '74', 'charge' => '1',
+    ]);
+
+    $this->actingAs($user);
+
+    $overview = app(ReportSummary::class)
+        ->overview(CategoryType::Expense, DateRange::fromRequest(null, '2026-08-01', '2026-08-31'));
+
+    // Biggest first, and charges are part of what the category cost.
+    expect($overview['total'])->toBe(10000)
+        ->and($overview['rows']->pluck('name')->all())->toBe(['Rent', 'Groceries'])
+        ->and($overview['rows'][0]['total'])->toBe(7500)
+        ->and($overview['rows'][0]['share'])->toBe(0.75)
+        ->and($overview['rows']->sum('share'))->toBe(1.0);
+});
+
+test('transfer charges ride along as their own expense slice', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '90',
+    ]);
+
+    // No category of its own, but the money still left the book.
+    post($this, $user, [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $cash->id, 'to_account_id' => $bank->id, 'amount' => '500', 'charge' => '10',
+    ]);
+
+    $this->actingAs($user);
+
+    $overview = app(ReportSummary::class)
+        ->overview(CategoryType::Expense, DateRange::fromRequest(null, '2026-08-01', '2026-08-31'));
+
+    expect($overview['total'])->toBe(10000)
+        ->and($overview['rows']->firstWhere('key', 'charges')['total'])->toBe(1000)
+        // Nothing to drill into: the charge belongs to no category.
+        ->and($overview['rows']->firstWhere('key', 'charges')['category'])->toBeNull();
+
+    // The transfer itself is a move, not spending.
+    expect($overview['rows']->sum('total'))->toBe(10000);
+});
+
+test('income overview never counts transfer charges', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'salary' => $salary] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '100', 'charge' => '10',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $cash->id, 'to_account_id' => $bank->id, 'amount' => '20', 'charge' => '5',
+    ]);
+
+    $this->actingAs($user);
+
+    $overview = app(ReportSummary::class)
+        ->overview(CategoryType::Income, DateRange::fromRequest(null, '2026-08-01', '2026-08-31'));
+
+    expect($overview['total'])->toBe(9000)
+        ->and($overview['rows'])->toHaveCount(1);
+});
+
+test('the overview modal shows the period, the share and the transactions', function () {
+    ['user' => $user, 'cash' => $cash, 'food' => $food] = ledger();
+
+    $rent = Category::factory()->for($user)->create([
+        'name' => 'Rent', 'type' => CategoryType::Expense, 'status' => CategoryStatus::Active,
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '25', 'note' => 'weekly shop',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $rent->id, 'amount' => '75',
+    ]);
+
+    $query = ['from' => '2026-08-01', 'to' => '2026-08-31'];
+
+    $this->actingAs($user)->get(route('reports.overview.detail', $food).'?'.http_build_query($query))
+        ->assertOk()
+        ->assertSee('1 Aug 2026 – 31 Aug 2026')
+        ->assertSee('25.0%')
+        ->assertSee('of spending in this period')
+        ->assertSee('Total expense')
+        ->assertSee('weekly shop');
+});
+
+test('a category from another book cannot be opened from the overview', function () {
+    ['user' => $user, 'food' => $food] = ledger();
+    $other = Book::factory()->for($user)->create();
+
+    $this->actingAs($user)->post(route('books.switch', $other));
+
+    $this->actingAs($user)->get(route('reports.overview.detail', $food))->assertNotFound();
+});
+
+test('the flow calendar renders whole months and greys what the range misses', function () {
+    ['user' => $user, 'cash' => $cash, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '40',
+    ], '2026-08-12');
+
+    // A part month still draws end to end; the days outside it are just dead.
+    $this->actingAs($user)->get(route('reports.expense-flow', ['from' => '2026-08-10', 'to' => '2026-08-20']))
+        ->assertOk()
+        ->assertSee('Expense Flow')
+        ->assertSee('August 2026')
+        ->assertSee('1 active day')
+        // The 12th carries the money and can be opened; the 3rd is out of range.
+        ->assertSee('data-day="2026-08-12"', false)
+        ->assertDontSee('data-day="2026-08-03"', false);
+});
+
+test('a range spanning months draws one calendar each', function () {
+    ['user' => $user, 'cash' => $cash, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '10',
+    ], '2026-07-05');
+
+    $this->actingAs($user)->get(route('reports.expense-flow', ['from' => '2026-06-15', 'to' => '2026-08-05']))
+        ->assertOk()
+        ->assertSee('June 2026')
+        ->assertSee('July 2026')
+        ->assertSee('August 2026');
+});
+
+test('daily flow totals follow the same charge rules as the overview', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'salary' => $salary, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '40', 'charge' => '2',
+    ], '2026-08-10');
+
+    post($this, $user, [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $cash->id, 'to_account_id' => $bank->id, 'amount' => '100', 'charge' => '3',
+    ], '2026-08-10');
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '500', 'charge' => '5',
+    ], '2026-08-11');
+
+    $this->actingAs($user);
+
+    $range = DateRange::fromRequest(null, '2026-08-01', '2026-08-31');
+    $summary = app(ReportSummary::class);
+
+    $expense = $summary->dailyFlow(CategoryType::Expense, $range);
+    $income = $summary->dailyFlow(CategoryType::Income, $range);
+
+    // The transfer itself never lands, only its charge.
+    expect($expense['days'])->toBe(['2026-08-10' => 4500])
+        ->and($expense['total'])->toBe($summary->overview(CategoryType::Expense, $range)['total'])
+        ->and($income['days'])->toBe(['2026-08-11' => 49500])
+        ->and($income['busiest'])->toBe('2026-08-11');
+});
+
+test('a day opens to its transactions and nothing from the other side', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'salary' => $salary, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '40', 'note' => 'market run',
+    ], '2026-08-10');
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '500', 'note' => 'august pay',
+    ], '2026-08-10');
+
+    post($this, $user, [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $cash->id, 'to_account_id' => $bank->id, 'amount' => '100', 'charge' => '3',
+    ], '2026-08-10');
+
+    $this->actingAs($user)->get(route('reports.flow.day', ['type' => 'expense', 'date' => '2026-08-10']))
+        ->assertOk()
+        ->assertSee('Monday, 10 August 2026')
+        ->assertSee('market run')
+        // The charge belongs here; the transfer's own amount does not.
+        ->assertSee('Transfer charge')
+        ->assertDontSee('august pay');
+
+    $this->actingAs($user)->get(route('reports.flow.day', ['type' => 'income', 'date' => '2026-08-10']))
+        ->assertOk()
+        ->assertSee('august pay')
+        ->assertDontSee('market run')
+        ->assertDontSee('Transfer charge');
+});
+
+test('the flow day fragment rejects a bad side or date', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get(route('reports.flow.day', ['type' => 'profit', 'date' => '2026-08-10']))->assertNotFound();
+    $this->actingAs($user)->get(route('reports.flow.day', ['type' => 'expense', 'date' => 'yesterday']))->assertNotFound();
+});
+
+test('the flow day stays inside the active book', function () {
+    ['user' => $user, 'cash' => $cash, 'food' => $food] = ledger();
+    $other = Book::factory()->for($user)->create();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '40', 'note' => 'market run',
+    ], '2026-08-10');
+
+    $this->actingAs($user)->post(route('books.switch', $other));
+
+    $this->actingAs($user)->get(route('reports.flow.day', ['type' => 'expense', 'date' => '2026-08-10']))
+        ->assertOk()
+        ->assertDontSee('market run')
+        ->assertSee('Nothing recorded on this day.');
+});
+
+test('an open ended range falls back to a month the calendar can draw', function () {
+    ['user' => $user] = ledger();
+
+    $this->actingAs($user)->get(route('reports.expense-flow', ['range' => 'all']))
+        ->assertOk()
+        ->assertSee('This month')
+        ->assertSee(now()->isoFormat('MMMM YYYY'));
+});
+
+test('the account filter matches the side the money moved on', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'salary' => $salary, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '30',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $bank->id, 'category_id' => $food->id, 'amount' => '70',
+    ]);
+
+    // Money arriving from a transfer is not income, however the filter is set.
+    post($this, $user, [
+        'type' => TransactionType::Transfer->value,
+        'account_id' => $bank->id, 'to_account_id' => $cash->id, 'amount' => '200', 'charge' => '4',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Income->value,
+        'account_id' => $cash->id, 'category_id' => $salary->id, 'amount' => '500',
+    ]);
+
+    $this->actingAs($user);
+
+    $range = DateRange::fromRequest(null, '2026-08-01', '2026-08-31');
+    $summary = app(ReportSummary::class);
+
+    $spentFromCash = $summary->overview(CategoryType::Expense, $range, new ReportFilter($cash->id));
+    $spentFromBank = $summary->overview(CategoryType::Expense, $range, new ReportFilter($bank->id));
+    $intoBank = $summary->overview(CategoryType::Income, $range, new ReportFilter($bank->id));
+
+    expect($spentFromCash['total'])->toBe(3000)
+        // The bank paid its own expense and the transfer charge.
+        ->and($spentFromBank['total'])->toBe(7000 + 400)
+        ->and($intoBank['total'])->toBe(0);
+});
+
+test('the category filter narrows the flow calendar', function () {
+    ['user' => $user, 'cash' => $cash, 'food' => $food] = ledger();
+
+    $rent = Category::factory()->for($user)->create([
+        'name' => 'Rent', 'type' => CategoryType::Expense, 'status' => CategoryStatus::Active,
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '30',
+    ], '2026-08-10');
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $rent->id, 'amount' => '70',
+    ], '2026-08-11');
+
+    $this->actingAs($user);
+
+    $flow = app(ReportSummary::class)->dailyFlow(
+        CategoryType::Expense,
+        DateRange::fromRequest(null, '2026-08-01', '2026-08-31'),
+        new ReportFilter(null, $rent->id),
+    );
+
+    expect($flow['days'])->toBe(['2026-08-11' => 7000]);
+});
+
+test('a filtered flow page keeps the filter on the days it opens', function () {
+    ['user' => $user, 'cash' => $cash, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '30',
+    ], '2026-08-10');
+
+    $this->actingAs($user)->get(route('reports.expense-flow', [
+        'from' => '2026-08-01', 'to' => '2026-08-31', 'account' => $cash->id,
+    ]))
+        ->assertOk()
+        ->assertSee('Paid from')
+        ->assertSee('data-day="2026-08-10"', false)
+        ->assertSee('account='.$cash->id, false);
+});
+
+test('the flow day fragment honours the filter it is opened with', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'food' => $food] = ledger();
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '30', 'note' => 'cash shop',
+    ], '2026-08-10');
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $bank->id, 'category_id' => $food->id, 'amount' => '70', 'note' => 'card shop',
+    ], '2026-08-10');
+
+    $this->actingAs($user)->get(route('reports.flow.day', [
+        'type' => 'expense', 'date' => '2026-08-10', 'account' => $cash->id,
+    ]))
+        ->assertOk()
+        ->assertSee('cash shop')
+        ->assertDontSee('card shop');
+});
+
+test('the overview modal shares are of the filtered total', function () {
+    ['user' => $user, 'cash' => $cash, 'bank' => $bank, 'food' => $food] = ledger();
+
+    $rent = Category::factory()->for($user)->create([
+        'name' => 'Rent', 'type' => CategoryType::Expense, 'status' => CategoryStatus::Active,
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $food->id, 'amount' => '25',
+    ]);
+
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $cash->id, 'category_id' => $rent->id, 'amount' => '75',
+    ]);
+
+    // Paid from elsewhere, so it must not dilute the share once Cash is picked.
+    post($this, $user, [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $bank->id, 'category_id' => $rent->id, 'amount' => '900',
+    ]);
+
+    $query = ['from' => '2026-08-01', 'to' => '2026-08-31', 'account' => $cash->id];
+
+    $this->actingAs($user)->get(route('reports.overview.detail', $food).'?'.http_build_query($query))
+        ->assertOk()
+        ->assertSee('25.0%');
+});
+
+test('the overview offers no category filter', function () {
+    ['user' => $user] = ledger();
+
+    $this->actingAs($user)->get(route('reports.expenses'))
+        ->assertOk()
+        ->assertSee('All accounts')
+        ->assertDontSee('All categories');
+
+    $this->actingAs($user)->get(route('reports.expense-flow'))
+        ->assertOk()
+        ->assertSee('All categories');
+});
+
+test('the reports menu links every report', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)->get(route('dashboard'))
@@ -233,5 +663,7 @@ test('the reports menu lists every report, with the unbuilt ones marked', functi
         ->assertSee('Category Analysis')
         ->assertSee('Expense Overview')
         ->assertSee('Income Flow')
-        ->assertSee('Soon');
+        ->assertSee(route('reports.expense-flow'), false)
+        ->assertSee(route('reports.incomes'), false)
+        ->assertDontSee('Soon');
 });

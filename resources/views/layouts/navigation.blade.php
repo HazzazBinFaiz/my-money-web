@@ -1,9 +1,9 @@
 @php
     $reportMenu = [
-        ['label' => __('Expense Overview'), 'route' => null],
-        ['label' => __('Income Overview'), 'route' => null],
-        ['label' => __('Expense Flow'), 'route' => null],
-        ['label' => __('Income Flow'), 'route' => null],
+        ['label' => __('Expense Overview'), 'route' => 'reports.expenses'],
+        ['label' => __('Income Overview'), 'route' => 'reports.incomes'],
+        ['label' => __('Expense Flow'), 'route' => 'reports.expense-flow'],
+        ['label' => __('Income Flow'), 'route' => 'reports.income-flow'],
         ['label' => __('Account Analysis'), 'route' => 'reports.accounts'],
         ['label' => __('Category Analysis'), 'route' => 'reports.categories'],
     ];

@@ -9,15 +9,18 @@ use App\Models\Account;
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\Contact;
+use App\Services\ExcelExporter;
 use App\Services\MbakExporter;
 use App\Services\MbakImporter;
 use App\Support\CurrentBook;
+use App\Support\DateRange;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Copies contacts and categories from the user's other books into the
@@ -188,6 +191,35 @@ class BookImportController extends Controller
             'Content-Type' => 'application/octet-stream',
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
+    }
+
+    /**
+     * The active book as a workbook: transactions, then accounts, categories
+     * and contacts.
+     */
+    public function exportExcel(Request $request, ExcelExporter $exporter, CurrentBook $currentBook): StreamedResponse
+    {
+        $book = $currentBook->get();
+
+        $filters = $request->validate([
+            'range' => ['nullable', 'string', 'in:'.implode(',', array_keys(DateRange::PRESETS))],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+        ]);
+
+        $range = DateRange::fromRequest(
+            $filters['range'] ?? 'all',
+            $filters['from'] ?? null,
+            $filters['to'] ?? null,
+        );
+
+        $filename = Str::slug($book?->name ?: 'book').'-'.now()->format('Y-m-d').'.xlsx';
+
+        return response()->streamDownload(
+            fn () => $exporter->download($book, $range, $filename),
+            $filename,
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        );
     }
 
     /**

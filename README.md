@@ -12,7 +12,8 @@ Tailwind, with no SPA layer.
   CSV, or type across the grid with the keyboard alone.
 - **Balances are derived**, never patched. Edit an opening balance or delete an entry and every
   figure after it is recalculated.
-- **`.mbak` import and export**, so you can move in from the mobile app and back out again.
+- **`.mbak` import and export**, so you can move in from the mobile app and back out again, plus a
+  multi-sheet **Excel export**.
 
 ---
 
@@ -174,7 +175,11 @@ web server would answer from disk before Laravel ever saw the request.
 
 ### Charts
 
-Charts are plain HTML and CSS: no charting library. Colours are CSS roles (`--viz-income`,
+Charts are plain HTML and CSS — donut slices are stroked SVG circles, the flow calendars are CSS
+grids: no charting library. The flow reports filter by account and category; the overviews filter
+by account only, since the pie is already the category split. An account filter matches the side
+the money moved on (out of it for expense, into it for income), so a transfer's arrival never
+reads as income. Colours are CSS roles (`--viz-income`,
 `--viz-expense`, `--viz-bar`) defined once per theme and **validated for colour-blind separation
 and contrast** rather than eyeballed. Every chart ships a legend for two or more series, hover and
 keyboard-focus tooltips, and a route to the numbers that does not require hovering (direct labels
@@ -202,9 +207,9 @@ balance), and that a server error renders the 500 page without leaking the excep
 
 ## Status
 
-Built: books, accounts, contacts, categories, transactions (single and bulk), dashboard, Account
-and Category analysis, `.mbak` import/export, the marketing site and legal pages.
+Built: books, accounts, contacts, categories, transactions (single and bulk), dashboard, all six
+reports (Expense/Income Overview, Expense/Income Flow, Account and Category analysis), `.mbak` and
+Excel export, the marketing site and legal pages.
 
-Next: the remaining reports (Expense/Income Overview, Expense/Income Flow — they appear in the
-Reports menu marked *Soon*), budgets (the `.mbak` format carries a `budgets` array we currently
+Next: budgets (the `.mbak` format carries a `budgets` array we currently
 discard), and book-level sharing.

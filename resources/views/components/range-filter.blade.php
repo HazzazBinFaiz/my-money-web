@@ -1,11 +1,18 @@
 @props([
     'range',
     'route',
+    // Pages that cannot answer for an unbounded range pass a shorter list.
+    'only' => null,
 ])
+
+@php
+    $presets = collect(\App\Support\DateRange::PRESETS)
+        ->when($only, fn ($presets) => $presets->only($only));
+@endphp
 
 {{-- One row, above everything it scopes. --}}
 <div class="flex flex-wrap items-center gap-2">
-    @foreach (\App\Support\DateRange::PRESETS as $key => $label)
+    @foreach ($presets as $key => $label)
         @continue($key === 'custom')
 
         <a href="{{ route($route, ['range' => $key]) }}"

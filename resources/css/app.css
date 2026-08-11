@@ -39,6 +39,20 @@
     --viz-bar: #2a78d6;
     --viz-grid: #e5e7eb;
     --viz-axis: #6b7280;
+
+    /* Categorical slices. Okabe-Ito derived: separable under deuteranopia and
+       protanopia, which a rainbow ramp is not. Anything past the eighth
+       category is folded into --viz-cat-rest, so the set never has to stretch. */
+    --viz-cat-1: #0072b2;
+    --viz-cat-2: #e69f00;
+    --viz-cat-3: #009e73;
+    --viz-cat-4: #cc79a7;
+    --viz-cat-5: #56b4e9;
+    --viz-cat-6: #d55e00;
+    --viz-cat-7: #7a5195;
+    --viz-cat-8: #6b8e23;
+    --viz-cat-rest: #9ca3af;
+    --viz-surface: #ffffff;
 }
 
 .dark .viz {
@@ -47,6 +61,33 @@
     --viz-bar: #3987e5;
     --viz-grid: #27272a;
     --viz-axis: #9ca3af;
+
+    --viz-cat-1: #4fa3db;
+    --viz-cat-2: #f0b429;
+    --viz-cat-3: #34c08d;
+    --viz-cat-4: #e48fc0;
+    --viz-cat-5: #7fc8f0;
+    --viz-cat-6: #f07a33;
+    --viz-cat-7: #a681c9;
+    --viz-cat-8: #9bb84a;
+    --viz-cat-rest: #6b7280;
+    --viz-surface: #111827;
+}
+
+/* Slice hover and keyboard focus, so the tooltip has a visible anchor. */
+.viz-slice {
+    transition: opacity 120ms ease;
+    outline: none;
+}
+
+.viz-pie:hover .viz-slice,
+.viz-pie:focus-within .viz-slice {
+    opacity: 0.45;
+}
+
+.viz-pie .viz-slice:hover,
+.viz-pie .viz-slice:focus-visible {
+    opacity: 1;
 }
 
 /* Circular crop frame for the image picker. */
