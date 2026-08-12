@@ -5,7 +5,11 @@
  * expression is replaced with its two decimal result. The server re-parses the
  * submitted value, so this is only a convenience.
  */
-export default function transactionForm({ type = 0, amount = '', charge = '' } = {}) {
+// TransactionType::Expense — the type most entries are, and the same default the
+// bulk grid starts a row with.
+const DEFAULT_TYPE = 1;
+
+export default function transactionForm({ type = DEFAULT_TYPE, amount = '', charge = '' } = {}) {
     return {
         type,
         amount,
