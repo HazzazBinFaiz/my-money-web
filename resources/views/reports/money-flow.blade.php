@@ -32,7 +32,7 @@
 
             <x-chart.sankey :flow="$flow"
                             :title="__('Where the money came from, and where it went')"
-                            :subtitle="__('Income categories on the left, the accounts they landed in down the middle, spending on the right. A transfer loops from one account to another: out of the bottom of the sending side, into the top of the receiving one.')"
+                            :subtitle="__('Income categories on the left, the accounts they landed in down the middle, expense on the right. A transfer loops from one account to another: out of the sending side below its expense, into the top of the receiving one.')"
                             :empty="__('Nothing moved in this range.')" />
 
             {{-- The same numbers without a hover, and the only readable form on a phone --}}

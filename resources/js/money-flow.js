@@ -117,8 +117,10 @@ export default function moneyFlow(payload) {
          * Where each ribbon meets its node.
          *
          * The layout packs a node's links in its own order, which knows nothing
-         * about transfers. Ours leave last, flush with the bottom of the sending
-         * account, and arrive first, at the top of the receiving one.
+         * about transfers. Ours leave last — directly under the spending, not
+         * pinned to the bottom of the node, or an account that took in more than
+         * it paid out would show the transfer floating clear of everything else —
+         * and arrive first, at the top of the receiving one.
          */
         packEdges(graph) {
             const leaving = new Map();
@@ -137,22 +139,13 @@ export default function moneyFlow(payload) {
                 arriving.get(link.target).push(link);
             }
 
-            const width = (links) => links.reduce((total, link) => total + link.width, 0);
-
             for (const [node, links] of leaving) {
                 const transfers = links.filter((link) => this.loops(link));
                 const rest = links.filter((link) => ! this.loops(link));
 
                 let y = node.y0;
 
-                for (const link of rest) {
-                    link.y0 = y + link.width / 2;
-                    y += link.width;
-                }
-
-                y = Math.max(y, node.y1 - width(transfers));
-
-                for (const link of transfers) {
+                for (const link of [...rest, ...transfers]) {
                     link.y0 = y + link.width / 2;
                     y += link.width;
                 }

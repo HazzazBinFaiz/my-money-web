@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\AccountStatus;
+use App\Enums\AccountType;
 use App\Enums\CategoryStatus;
 use App\Enums\CategoryType;
 use App\Enums\TransactionType;
@@ -214,6 +215,100 @@ test('both list views render and transactions are scoped to their owner', functi
     $this->actingAs(User::factory()->create())
         ->delete(route('transactions.destroy', $transaction))
         ->assertNotFound();
+});
+
+test('create and add more comes back to the form with the last entry carried over', function () {
+    $user = User::factory()->create();
+    $account = Account::factory()->for($user)->create(['initial_amount' => 50000, 'amount' => 50000]);
+    $category = expense($user);
+
+    $entry = [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $account->id,
+        'category_id' => $category->id,
+        'amount' => '25',
+        'note' => 'first one',
+        'date' => '2026-07-04',
+        'time' => '10:30',
+        'after' => 'more',
+    ];
+
+    $response = $this->actingAs($user)->post(route('transactions.store'), $entry);
+
+    // Type, account and the moment repeat across a run of entries, so they ride
+    // back on the redirect; amount, category and note do not.
+    $response->assertRedirect(route('transactions.create', [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $account->id,
+        'date' => '2026-07-04',
+        'time' => '10:30',
+    ]))->assertSessionHas('status', 'transaction-created')
+        ->assertSessionHas('created_streak', 1);
+
+    expect(Transaction::count())->toBe(1);
+
+    // A second save keeps counting, so the page can say how many went in.
+    $this->actingAs($user)
+        ->from(route('transactions.create'))
+        ->post(route('transactions.store'), ['note' => 'second one'] + $entry)
+        ->assertSessionHas('created_streak', 2);
+
+    expect(Transaction::count())->toBe(2);
+});
+
+test('the plain create button still returns to the list', function () {
+    $user = User::factory()->create();
+    $account = Account::factory()->for($user)->create(['initial_amount' => 50000, 'amount' => 50000]);
+
+    $this->actingAs($user)->post(route('transactions.store'), [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $account->id,
+        'category_id' => expense($user)->id,
+        'amount' => '25',
+        'date' => '2026-07-04',
+        'time' => '10:30',
+    ])->assertRedirect(route('transactions.index'));
+});
+
+test('the entry form offers the add-more button, the edit form does not', function () {
+    $user = User::factory()->create();
+    $account = Account::factory()->for($user)->create(['initial_amount' => 50000, 'amount' => 50000]);
+
+    $this->actingAs($user)->post(route('transactions.store'), [
+        'type' => TransactionType::Expense->value,
+        'account_id' => $account->id,
+        'category_id' => expense($user)->id,
+        'amount' => '25',
+        'date' => '2026-07-04',
+        'time' => '10:30',
+    ]);
+
+    $this->actingAs($user)->get(route('transactions.create'))
+        ->assertOk()
+        ->assertSee('Create and add more');
+
+    $this->actingAs($user)->get(route('transactions.edit', Transaction::first()))
+        ->assertOk()
+        ->assertDontSee('Create and add more');
+});
+
+test('the entry form shows what each account holds', function () {
+    $user = User::factory()->create();
+
+    Account::factory()->for($user)->create(['name' => 'Cash', 'initial_amount' => 125000, 'amount' => 125000]);
+
+    // A contact in debit: you owe them, so the balance reads negative and is
+    // flagged for the picker to colour.
+    Account::factory()->for($user)->create([
+        'name' => 'Boro vai', 'type' => AccountType::Contact, 'initial_amount' => -5000, 'amount' => -5000,
+    ]);
+
+    $this->actingAs($user)->get(route('transactions.create'))
+        ->assertOk()
+        ->assertSee('1,250.00')
+        ->assertSee('-50.00')
+        // @js escapes the payload, so the flag travels as a unicode escape.
+        ->assertSee('negative\u0022:true', false);
 });
 
 test('deleting a transaction replays the balances of the ones after it', function () {

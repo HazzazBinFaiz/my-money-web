@@ -30,7 +30,7 @@
                 {{ __('Showing') }} <span class="font-medium text-gray-700 dark:text-gray-300">{{ $range->label() }}</span>
                 · {{ trans_choice(':count category|:count categories', $overview['count'], ['count' => $overview['count']]) }}
                 · <span class="font-semibold {{ $money }}">{{ Util::displayAmount($overview['total']) }}</span>
-                {{ $isIncome ? __('in total') : __('spent') }}
+                {{ $isIncome ? __('in income') : __('in expense') }}
             </p>
 
             <x-chart.pie :rows="$rows"
@@ -39,8 +39,8 @@
                          :title="$isIncome ? __('Where the income came from') : __('Where the money went')"
                          :subtitle="$isIncome
                             ? __('Each slice is one category\'s share of income, net of charges.')
-                            : __('Each slice is one category\'s share of spending, charges included.')"
-                         :empty="$isIncome ? __('No income in this range.') : __('No spending in this range.')" />
+                            : __('Each slice is one category\'s share of expense, charges included.')"
+                         :empty="$isIncome ? __('No income in this range.') : __('No expense in this range.')" />
 
             <x-ui.card>
                 <div class="overflow-x-auto">
@@ -94,7 +94,7 @@
                             @empty
                                 <tr>
                                     <td colspan="3" class="px-6 py-10 text-center text-sm text-gray-500">
-                                        {{ $isIncome ? __('No income in this range.') : __('No spending in this range.') }}
+                                        {{ $isIncome ? __('No income in this range.') : __('No expense in this range.') }}
                                     </td>
                                 </tr>
                             @endforelse

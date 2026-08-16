@@ -59,7 +59,7 @@
         <div x-show="! empty">
             {{-- Legend: three kinds of ribbon, so the transfer loops need no explaining --}}
             <div class="flex flex-wrap items-center gap-4 px-4 pt-4 text-xs text-gray-600 sm:px-6 dark:text-gray-400">
-                @foreach ([__('Income') => 'income', __('Transfer') => 'transfer', __('Spending') => 'expense'] as $label => $side)
+                @foreach ([__('Income') => 'income', __('Transfer') => 'transfer', __('Expense') => 'expense'] as $label => $side)
                     <span class="flex items-center gap-1.5">
                         <span class="viz-key viz-key--{{ $side }}"></span>
                         {{ $label }}

@@ -6,7 +6,9 @@
 ])
 
 @php
-    // $groups: [['label' => 'Accounts', 'options' => [['value' => 1, 'label' => 'Cash', 'icon' => url|null]]]]
+    // $groups: [['label' => 'Accounts', 'options' => [['value' => 1, 'label' => 'Cash', 'icon' => url|null,
+    //           'meta' => '1,234.00', 'negative' => false]]]]
+    // 'meta' is optional trailing text — the account pickers use it for the balance.
     $options = collect($groups)->flatMap(fn ($group) => $group['options'])->values()->all();
     $index = collect($options)->mapWithKeys(fn ($option, $key) => [$option['value'] => $key]);
 @endphp
@@ -33,9 +35,17 @@
                   x-text="current() ? current().label : @js($placeholder)"></span>
         </span>
 
-        <svg class="h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
+        <span class="ms-auto flex shrink-0 items-center gap-2">
+            <template x-if="current() && current().meta">
+                <span class="text-xs tabular-nums"
+                      :class="current().negative ? 'text-rose-600 dark:text-rose-400' : 'text-gray-500 dark:text-gray-400'"
+                      x-text="current().meta"></span>
+            </template>
+
+            <svg class="h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </span>
     </button>
 
     <div x-show="open" x-cloak x-transition.opacity.duration.100ms
@@ -55,7 +65,13 @@
                         @else
                             <span class="h-7 w-7 shrink-0 avatar rounded-full bg-gray-100 dark:bg-gray-600"></span>
                         @endif
-                        <span class="truncate text-gray-900 dark:text-gray-100">{{ $option['label'] }}</span>
+                        <span class="min-w-0 flex-1 truncate text-gray-900 dark:text-gray-100">{{ $option['label'] }}</span>
+
+                        @if (! empty($option['meta']))
+                            <span class="shrink-0 text-xs tabular-nums {{ ($option['negative'] ?? false)
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : 'text-gray-500 dark:text-gray-400' }}">{{ $option['meta'] }}</span>
+                        @endif
                     </button>
                 @endforeach
             @endif

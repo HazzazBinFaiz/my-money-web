@@ -359,7 +359,7 @@ test('the overview modal shows the period, the share and the transactions', func
         ->assertOk()
         ->assertSee('1 Aug 2026 – 31 Aug 2026')
         ->assertSee('25.0%')
-        ->assertSee('of spending in this period')
+        ->assertSee('of expense in this period')
         ->assertSee('Total expense')
         ->assertSee('weekly shop');
 });

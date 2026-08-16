@@ -120,6 +120,18 @@ class TransactionController extends Controller
             occurredAt: $request->occurredAt(),
         ));
 
+        // "Create and add more" comes straight back to an empty form, carrying the
+        // type, accounts and moment forward — the parts that repeat across a run of
+        // entries. Amount, category and note are what change, so they start blank.
+        if ($request->input('after') === 'more') {
+            return redirect()
+                ->route('transactions.create', array_filter(
+                    $request->only(['type', 'account_id', 'to_account_id', 'date', 'time'])
+                ))
+                ->with('status', 'transaction-created')
+                ->with('created_streak', $request->session()->get('created_streak', 0) + 1);
+        }
+
         return redirect()->route('transactions.index')->with('status', 'transaction-created');
     }
 

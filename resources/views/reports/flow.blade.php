@@ -34,7 +34,7 @@
             <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
                 <span>{{ __('Showing') }} <span class="font-medium text-gray-700 dark:text-gray-300">{{ $range->label() }}</span></span>
                 <span>· <span class="font-semibold {{ $money }}">{{ Util::displayAmount($flow['total']) }}</span>
-                    {{ $isIncome ? __('in total') : __('spent') }}</span>
+                    {{ $isIncome ? __('in income') : __('in expense') }}</span>
                 <span>· {{ trans_choice(':count active day|:count active days', $active, ['count' => $active]) }}</span>
                 <span>· {{ __('Average') }} {{ Util::displayAmount($average) }}</span>
 
@@ -48,7 +48,7 @@
             @if ($flow['total'] === 0)
                 <x-ui.card>
                     <p class="px-4 py-10 text-center text-sm text-gray-500">
-                        {{ $isIncome ? __('No income in this range.') : __('No spending in this range.') }}
+                        {{ $isIncome ? __('No income in this range.') : __('No expense in this range.') }}
                     </p>
                 </x-ui.card>
             @endif

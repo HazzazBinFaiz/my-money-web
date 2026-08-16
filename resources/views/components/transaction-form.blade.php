@@ -2,6 +2,8 @@
     'transaction' => null,
     'action',
     'submit',
+    // Entry pages offer a second submit that comes straight back for the next one.
+    'addMore' => false,
     'ownAccounts',
     'contactAccounts',
     'incomeCategories',
@@ -11,22 +13,24 @@
 @php
     use App\Enums\TransactionType;
 
+    // Balances ride along with each account so you can see what you are spending
+    // from — and, on a transfer, what both sides hold — without leaving the form.
+    $accountOption = fn ($account) => [
+        'value' => $account->id,
+        'label' => $account->name,
+        'icon' => $account->icon?->url,
+        'meta' => \App\Lib\Util::displayAmount($account->amount),
+        'negative' => $account->amount < 0,
+    ];
+
     $accountGroups = [
         [
             'label' => __('Accounts'),
-            'options' => $ownAccounts->map(fn ($account) => [
-                'value' => $account->id,
-                'label' => $account->name,
-                'icon' => $account->icon?->url,
-            ])->all(),
+            'options' => $ownAccounts->map($accountOption)->all(),
         ],
         [
             'label' => __('Contacts'),
-            'options' => $contactAccounts->map(fn ($account) => [
-                'value' => $account->id,
-                'label' => $account->name,
-                'icon' => $account->icon?->url,
-            ])->all(),
+            'options' => $contactAccounts->map($accountOption)->all(),
         ],
     ];
 
@@ -42,7 +46,7 @@
 
             <div class="mx-auto max-w-3xl"
                  x-data="transactionForm(@js([
-                    'type' => (int) old('type', $transaction?->type->value ?? TransactionType::Expense->value),
+                    'type' => (int) old('type', $transaction?->type->value ?? request('type', TransactionType::Expense->value)),
                     'amount' => old('amount', $transaction ? \App\Lib\Util::toMajorUnits($transaction->amount) : ''),
                     'charge' => old('charge', $transaction ? \App\Lib\Util::toMajorUnits($transaction->charge) : ''),
                  ]))">
@@ -74,7 +78,7 @@
                                 <label class="block text-sm font-medium leading-none text-gray-700 dark:text-gray-300"
                                        x-text="type === {{ TransactionType::Transfer->value }} ? '{{ __('From account') }}' : '{{ __('Account') }}'"></label>
 
-                                <x-ui.option-picker name="account_id" :groups="$accountGroups" :value="old('account_id', $transaction?->primaryAccount()?->id)"
+                                <x-ui.option-picker name="account_id" :groups="$accountGroups" :value="old('account_id', $transaction?->primaryAccount()?->id ?? request('account_id'))"
                                                     :placeholder="__('Select account')" />
 
                                 <x-input-error :messages="$errors->get('account_id')" class="!text-xs" />
@@ -102,7 +106,7 @@
 
                                 <template x-if="type === {{ TransactionType::Transfer->value }}">
                                     <x-ui.field :label="__('To account')" :error="$errors->get('to_account_id')">
-                                        <x-ui.option-picker name="to_account_id" :groups="$accountGroups" :value="old('to_account_id', $transaction?->to_account_id)"
+                                        <x-ui.option-picker name="to_account_id" :groups="$accountGroups" :value="old('to_account_id', $transaction?->to_account_id ?? request('to_account_id'))"
                                                             :placeholder="__('Select account')" />
                                     </x-ui.field>
                                 </template>
@@ -139,12 +143,12 @@
                             <!-- Date and time -->
                             <x-ui.field :label="__('Date')" for="date" :error="$errors->get('date')">
                                 <x-ui.input id="date" name="date" type="date"
-                                            :value="old('date', ($transaction?->created_at ?? now())->format('Y-m-d'))" required />
+                                            :value="old('date', $transaction?->created_at?->format('Y-m-d') ?? request('date', now()->format('Y-m-d')))" required />
                             </x-ui.field>
 
                             <x-ui.field :label="__('Time')" for="time" :error="$errors->get('time')">
                                 <x-ui.input id="time" name="time" type="time"
-                                            :value="old('time', ($transaction?->created_at ?? now())->format('H:i'))" required />
+                                            :value="old('time', $transaction?->created_at?->format('H:i') ?? request('time', now()->format('H:i')))" required />
                             </x-ui.field>
                         </div>
 
@@ -154,6 +158,11 @@
                                       text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
                                 {{ __('Cancel') }}
                             </a>
+                            @if ($addMore)
+                                <x-ui.button type="submit" name="after" value="more" variant="outline"
+                                             class="w-full sm:w-auto">{{ __('Create and add more') }}</x-ui.button>
+                            @endif
+
                             <x-ui.button class="w-full sm:w-auto">{{ $submit }}</x-ui.button>
                         </div>
                     </form>

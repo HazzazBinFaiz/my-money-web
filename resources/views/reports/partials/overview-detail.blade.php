@@ -26,7 +26,7 @@
     </p>
 
     <p class="mt-1 text-center text-xs text-gray-500 dark:text-gray-400">
-        {{ $isIncome ? __('of income in this period') : __('of spending in this period') }}
+        {{ $isIncome ? __('of income in this period') : __('of expense in this period') }}
         · {{ Util::displayAmount($detail['overall']) }}
     </p>
 

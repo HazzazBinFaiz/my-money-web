@@ -1,7 +1,7 @@
 @props([
     'rows' => null,
     'title' => 'Where it went',
-    'empty' => 'No spending in this range yet.',
+    'empty' => 'No expense in this range yet.',
 ])
 
 @php
@@ -16,7 +16,7 @@
 <x-ui.card {{ $attributes->merge(['class' => 'viz']) }}>
     <div class="border-b border-gray-100 px-4 py-4 sm:px-6 dark:border-gray-700">
         <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ $title }}</h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Expenses by category, charges included.') }}</p>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Expense by category, charges included.') }}</p>
     </div>
 
     @if ($rows->isEmpty())
